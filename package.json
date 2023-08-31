@@ -5,6 +5,8 @@
   "author": "Tom Rooman",
   "main": "index.js",
   "scripts": {
+    "start": "python3 src/main.py",
+    "convert": "python3 src/utils/convert_csv_to_json_candles.py",
     "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
