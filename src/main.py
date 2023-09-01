@@ -1,24 +1,43 @@
 import requests
+from typing import Sequence
+from dataclasses import dataclass
+import datetime
+from utils.format_csv_line import format_csv_line
+
+
+# Europe : de 09h00 à 18h00
+# New-York (qui se chevauche avec Londres) : de 14h00 à 23h00
+# Tokyo : de 00h00 à 09h00
+
+
+@dataclass
+class Candle:
+    symbol: str
+    start_timestamp: int
+    start_date: str
+    open: float
+    high: float
+    low: float
+    close: float
+
 
 def main():
-    print('test')
-    get()
-    
-def get():
-    # r = requests.get('https://ttlivewebapi.fxopen.net:8443/api/v2/public/quotehistory/EURUSD/5/bars/ask?timestamp=1693254648000&count=5')
-    r = requests.get('https://xapi.xtb.com:5124/getChartRangeRequest')
-    print(r.json())
-    
-def post():
-    data = {
-	"command": "getChartRangeRequest",
-	"arguments": {
-		"info": CHART_RANGE_INFO_RECORD
-	}
-}
+    candles = []
+    index = 0
+    with open("data/formatted/EURUSD_5min.csv", "rb") as text_file:
+        for line in text_file:
+            index += 1
+            if (index > 1):
+                candles.append(format_csv_line(line))
+                if (len(candles) > 50):
+                    del candles[0]
+                test_strategy(candles)
+                return
 
-    r = requests.post('https://httpbin.org/post', json=data)
-    print(r.json())
-    
+
+def test_strategy(candles: Sequence[Candle]):
+    print(candles)
+
+
 if __name__ == '__main__':
     main()

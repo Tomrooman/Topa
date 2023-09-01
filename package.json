@@ -6,7 +6,8 @@
   "main": "index.js",
   "scripts": {
     "start": "python3 src/main.py",
-    "convert": "python3 src/utils/convert_csv_to_json_candles.py",
+    "convert": "python3 src/utils/convert_historical_csv_to_5min_candles.py",
+    "daily_candles": "python3 src/utils/create_daily_candles_files.py",
     "test": "echo \"Error: no test specified\" && exit 1"
   }
 }

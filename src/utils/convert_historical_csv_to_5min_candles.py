@@ -1,6 +1,5 @@
 import csv
 import datetime
-import json
 
 
 def main():
@@ -22,8 +21,6 @@ def main():
             if line_count == 0:
                 print(f'Column names are {", ".join(row)}')
             else:
-                # print(
-                #     f'\t{row["<YYYYMMDD>"]} {row["<TIME_UTC>"]} {row["<OPEN>"]} {row["<HIGH>"]} {row["<LOW>"]} {row["<CLOSE>"]}')
                 year = row["<YYYYMMDD>"][0:4]
                 month = row["<YYYYMMDD>"][4:6]
                 day = row["<YYYYMMDD>"][6:8]
