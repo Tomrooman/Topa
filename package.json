@@ -5,7 +5,9 @@
   "author": "Tom Rooman",
   "main": "index.js",
   "scripts": {
-    "start": "python3 src/main.py",
+    "start:bot": "python3 src/bot/bot.py",
+    "start:api:dev": "flask --app src/api/api.py run",
+    "start:api:prod": "python src/api/api.py",
     "convert": "python3 src/utils/convert_historical_csv_to_5min_candles.py",
     "daily_candles": "python3 src/utils/create_daily_candles_files.py",
     "test": "echo \"Error: no test specified\" && exit 1"

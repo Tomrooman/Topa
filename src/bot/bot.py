@@ -3,6 +3,9 @@ from typing import Sequence
 from dataclasses import dataclass
 import datetime
 from utils.format_csv_line import format_csv_line
+from dotenv import dotenv_values
+
+config = dotenv_values(".env")
 
 
 # Europe : de 09h00 à 18h00
