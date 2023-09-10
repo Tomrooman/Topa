@@ -7,6 +7,7 @@ from dotenv import dotenv_values
 
 config = dotenv_values(".env")
 
+# Historical data in UTC time zone
 
 # Europe : de 09h00 à 18h00
 # New-York (qui se chevauche avec Londres) : de 14h00 à 23h00
