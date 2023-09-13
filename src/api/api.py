@@ -13,7 +13,7 @@ app = Flask(__name__)
 CORS(app)
 
 
-@app.get("/")
+@app.get("/candles")
 def hello_world():
     candles = []
     index = 0
