@@ -1,6 +1,6 @@
 from dotenv import dotenv_values
 from gevent.pywsgi import WSGIServer
-from flask import Flask
+from flask import Flask, request
 import sys
 import os
 from flask_cors import CORS, cross_origin
@@ -14,16 +14,34 @@ CORS(app)
 
 
 @app.get("/candles")
-def hello_world():
+def candles():
+    year = request.args.get('year')
+    month = request.args.get('month')
+    day = request.args.get('day')
     candles = []
     index = 0
-    with open("data/daily/2001/01/02.csv", "rb") as text_file:
+    with open(f"data/daily/{year}/{month}/{day}.csv", "rb") as text_file:
         for line in text_file:
             index += 1
             if (index > 1):
                 formatted_line = format_csv_line(line)
                 candles.append(formatted_line)
     return candles
+
+
+@app.get("/daysList")
+def daysList():
+    yearsWithMonthsAndDays = []
+    for year in sorted(os.listdir("data/daily")):
+        yearsWithMonthsAndDays.append({"value": year, "months": []})
+        for month in sorted(os.listdir("data/daily/" + year)):
+            yearsWithMonthsAndDays[-1]["months"].append(
+                {"value": month, "days": []})
+            for day in sorted(os.listdir("data/daily/" + year + "/" + month)):
+                yearsWithMonthsAndDays[-1]["months"][-1]["days"].append(
+                    {"value": day})
+
+    return yearsWithMonthsAndDays
 
 
 if __name__ == '__main__':
