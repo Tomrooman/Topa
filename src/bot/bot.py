@@ -7,6 +7,8 @@ from dotenv import dotenv_values
 
 config = dotenv_values(".env")
 
+FEES_PERCENTAGE = 0.0035
+
 # Historical data in UTC time zone
 
 # Europe : de 09h00 à 18h00
