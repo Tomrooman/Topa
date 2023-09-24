@@ -3,7 +3,7 @@ from gevent.pywsgi import WSGIServer
 from flask import Flask, request
 import sys
 import os
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 parent_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(parent_dir + '/..')
 from utils.create_candle_from_csv_line import create_candle_from_csv_line  # NOQA

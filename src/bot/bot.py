@@ -1,4 +1,3 @@
-import requests
 from typing import Sequence
 from dataclasses import dataclass
 import datetime
