@@ -1,8 +1,6 @@
 from dotenv import dotenv_values
 from gevent.pywsgi import WSGIServer
 from flask import Flask, request
-import numpy as np
-import tulipy as ti
 import sys
 import os
 from flask_cors import CORS

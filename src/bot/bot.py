@@ -3,6 +3,7 @@ from typing import Sequence
 from dataclasses import dataclass
 import datetime
 import os
+from talipp.indicators import RSI
 import sys
 parent_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(parent_dir + '/..')
@@ -11,6 +12,7 @@ from utils.create_candle_from_csv_line import Candle, create_candle_from_csv_lin
 config = dotenv_values(".env")
 
 FEES_PERCENTAGE = 0.0035
+CANDLES_HISTORY_LENGTH = 50
 
 # Historical data in UTC time zone
 
@@ -27,14 +29,26 @@ def main():
             index += 1
             if (index > 1):
                 candles.append(create_candle_from_csv_line(line))
-                if (len(candles) > 50):
+                if (len(candles) > CANDLES_HISTORY_LENGTH):
                     del candles[0]
                 test_strategy(candles)
+            if (index > 20):
                 return
 
 
+def get_rsi(candles: Sequence[Candle], period: int):
+    if (len(candles) < period + 1):
+        return None
+    candles_close = list(map(lambda candle: candle.close, candles))
+    candles_rsi = RSI(input_values=candles_close, period=period)
+    return candles_rsi
+
+
 def test_strategy(candles: Sequence[Candle]):
-    print(candles)
+    rsi = get_rsi(candles, 14)
+    if (rsi == None):
+        return
+    print(rsi)
 
 
 if __name__ == '__main__':
