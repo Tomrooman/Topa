@@ -1,8 +1,12 @@
+from dotenv import dotenv_values
 from typing import Sequence
 from dataclasses import dataclass
 import datetime
-from utils.create_candle_from_csv_line import Candle, create_candle_from_csv_line
-from dotenv import dotenv_values
+import os
+import sys
+parent_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(parent_dir + '/..')
+from utils.create_candle_from_csv_line import Candle, create_candle_from_csv_line  # NOQA
 
 config = dotenv_values(".env")
 
