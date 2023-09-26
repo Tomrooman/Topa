@@ -25,7 +25,8 @@ def candles():
         for line in text_file:
             index += 1
             if (index > 1):
-                formatted_line = create_candle_from_csv_line(line)
+                formatted_line = create_candle_from_csv_line(
+                    line.decode('utf-8').split(','))
                 candles.append(formatted_line)
     return candles
 

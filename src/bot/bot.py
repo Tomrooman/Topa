@@ -1,39 +1,49 @@
 from dotenv import dotenv_values
 from typing import Sequence
-from dataclasses import dataclass
-import datetime
+import pandas as pd
 import os
 from talipp.indicators import RSI
 import sys
 parent_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(parent_dir + '/..')
-from utils.create_candle_from_csv_line import Candle, create_candle_from_csv_line  # NOQA
+from utils.create_candle_from_csv_line import COLUMN_NAMES, Candle, create_candle_from_csv_line  # NOQA
 
 config = dotenv_values(".env")
 
 FEES_PERCENTAGE = 0.0035
 CANDLES_HISTORY_LENGTH = 50
 
-# Historical data in UTC time zone
-
+# Historical data downloaded in UTC time zone
+# Session times in UTC +1/2 time zone
 # Europe : de 09h00 à 18h00
-# New-York (qui se chevauche avec Londres) : de 14h00 à 23h00
+# New-York (qui se chevauche avec Londres) : de 14h00 à 22h00
 # Tokyo : de 00h00 à 09h00
 
 
 def main():
     candles = []
     index = 0
-    with open("data/formatted/EURUSD_5min.csv", "rb") as text_file:
-        for line in text_file:
-            index += 1
-            if (index > 1):
-                candles.append(create_candle_from_csv_line(line))
-                if (len(candles) > CANDLES_HISTORY_LENGTH):
-                    del candles[0]
-                test_strategy(candles)
-            if (index > 20):
-                return
+    chunksize = 100000
+
+    chunksize = 10 ** 6
+    open_file = pd.read_csv("data/formatted/EURUSD_5min.csv", chunksize=1)
+    for chunk in open_file:
+        # print(chunk)
+        print(create_candle_from_csv_line(chunk.values[0]))
+        index += 1
+        if (index == 15):
+            return
+
+    # with open("data/formatted/EURUSD_5min.csv", "rb") as text_file:
+    #     for line in text_file:
+    #         index += 1
+    #         if (index > 1):
+    #             candles.append(create_candle_from_csv_line(line))
+    #             if (len(candles) > CANDLES_HISTORY_LENGTH):
+    #                 del candles[0]
+    #             test_strategy(candles)
+    #         if (index > 20):
+    #             return
 
 
 def get_rsi(candles: Sequence[Candle], period: int):

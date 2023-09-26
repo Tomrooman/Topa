@@ -1,9 +1,7 @@
 import os
 from typing import Sequence
 
-COLUMN_NAMES = {
-    'Symbol': 0, 'Timeframe': 1, 'Start timestamp': 2, 'Start date': 3, 'Open': 4, 'High': 5, 'Low': 6, 'Close': 7
-}
+from src.utils.create_candle_from_csv_line import COLUMN_NAMES
 
 
 def main():
