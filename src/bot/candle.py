@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Sequence
+from typing import List
 
 COLUMN_NAMES = {
     'Symbol': 0, 'Timeframe': 1, 'Start timestamp': 2, 'Start date': 3, 'Open': 4, 'High': 5, 'Low': 6, 'Close': 7
@@ -17,7 +17,7 @@ class Candle:
     close: float
 
 
-def create_from_csv_line(line: Sequence[str]) -> Candle:
+def create_from_csv_line(line: List[str]) -> Candle:
     # formatted_date = datetime.datetime.fromtimestamp(
     #     int(splitted_line[COLUMN_NAMES['Start timestamp']]) / 1000).strftime("%Y-%m-%d %H:%M:%S")
     return Candle(

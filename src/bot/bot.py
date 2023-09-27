@@ -1,5 +1,5 @@
 from dotenv import dotenv_values
-from typing import Sequence
+from typing import List
 import pandas as pd
 from talipp.indicators import RSI
 from candle import COLUMN_NAMES, Candle, create_from_csv_line  # NOQA
@@ -40,7 +40,7 @@ def main():
     #             return
 
 
-def get_rsi(candles: Sequence[Candle], period: int):
+def get_rsi(candles: List[Candle], period: int):
     if (len(candles) < period + 1):
         return None
     candles_close = list(map(lambda candle: candle.close, candles))
@@ -48,7 +48,7 @@ def get_rsi(candles: Sequence[Candle], period: int):
     return candles_rsi
 
 
-def test_strategy(candles: Sequence[Candle]):
+def test_strategy(candles: List[Candle]):
     rsi = get_rsi(candles, 14)
     if (rsi == None):
         return
