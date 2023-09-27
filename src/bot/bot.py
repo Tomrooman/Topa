@@ -1,12 +1,8 @@
 from dotenv import dotenv_values
 from typing import Sequence
 import pandas as pd
-import os
 from talipp.indicators import RSI
-import sys
-parent_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(parent_dir + '/..')
-from utils.create_candle_from_csv_line import COLUMN_NAMES, Candle, create_candle_from_csv_line  # NOQA
+from candle import COLUMN_NAMES, Candle, create_from_csv_line  # NOQA
 
 config = dotenv_values(".env")
 
@@ -23,22 +19,20 @@ CANDLES_HISTORY_LENGTH = 50
 def main():
     candles = []
     index = 0
-    chunksize = 100000
-
-    chunksize = 10 ** 6
     open_file = pd.read_csv("data/formatted/EURUSD_5min.csv", chunksize=1)
-    for chunk in open_file:
-        # print(chunk)
-        print(create_candle_from_csv_line(chunk.values[0]))
-        index += 1
-        if (index == 15):
-            return
+    print(create_from_csv_line(open_file.get_chunk().values[0]))
+    print(create_from_csv_line(open_file.get_chunk().values[0]))
+    # for chunk in open_file:
+    #     print(create_from_csv_line(chunk.values[0]))
+    #     index += 1
+    #     if (index == 15):
+    #         return
 
     # with open("data/formatted/EURUSD_5min.csv", "rb") as text_file:
     #     for line in text_file:
     #         index += 1
     #         if (index > 1):
-    #             candles.append(create_candle_from_csv_line(line))
+    #             candles.append(create_from_csv_line(line))
     #             if (len(candles) > CANDLES_HISTORY_LENGTH):
     #                 del candles[0]
     #             test_strategy(candles)

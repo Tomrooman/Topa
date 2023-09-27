@@ -6,7 +6,7 @@ import os
 from flask_cors import CORS
 parent_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(parent_dir + '/..')
-from utils.create_candle_from_csv_line import create_candle_from_csv_line  # NOQA
+from bot.candle import create_from_csv_line  # NOQA
 
 
 config = dotenv_values(".env")
@@ -25,7 +25,7 @@ def candles():
         for line in text_file:
             index += 1
             if (index > 1):
-                formatted_line = create_candle_from_csv_line(
+                formatted_line = create_from_csv_line(
                     line.decode('utf-8').split(','))
                 candles.append(formatted_line)
     return candles

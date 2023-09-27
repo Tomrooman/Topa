@@ -10,6 +10,8 @@
     "start:api:prod": "python src/api/api.py",
     "convert:5m": "python3 src/utils/convert_historical_csv_to_5min_candles.py",
     "convert:30m": "python3 src/utils/convert_historical_csv_to_30min_candles.py",
+    "convert:1h": "python3 src/utils/convert_historical_csv_to_1h_candles.py",
+    "convert:4h": "python3 src/utils/convert_historical_csv_to_4h_candles.py",
     "daily_candles": "python3 src/utils/create_daily_candles_files.py",
     "test": "echo \"Error: no test specified\" && exit 1"
   }

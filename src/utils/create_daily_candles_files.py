@@ -1,18 +1,20 @@
 import os
+import sys
 from typing import Sequence
-
-from src.utils.create_candle_from_csv_line import COLUMN_NAMES
+parent_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(parent_dir + '/..')
+from bot.candle import COLUMN_NAMES  # NOQA
 
 
 def main():
-    file_path = 'data/daily'
+    file_path = 'data/daily/4h'
     candles = []
     previous_day = ''
     year = ''
     month = ''
     day = ''
 
-    with open('data/formatted/EURUSD_5min.csv', mode='rb') as csv_file:
+    with open('data/formatted/EURUSD_4h.csv', mode='rb') as csv_file:
         line_count = 0
         for row in csv_file:
             line = row.decode('utf-8').split(',')

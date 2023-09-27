@@ -17,7 +17,7 @@ class Candle:
     close: float
 
 
-def create_candle_from_csv_line(line: Sequence[str]) -> Candle:
+def create_from_csv_line(line: Sequence[str]) -> Candle:
     # formatted_date = datetime.datetime.fromtimestamp(
     #     int(splitted_line[COLUMN_NAMES['Start timestamp']]) / 1000).strftime("%Y-%m-%d %H:%M:%S")
     return Candle(
