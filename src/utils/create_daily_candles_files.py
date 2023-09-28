@@ -1,6 +1,5 @@
 import os
 import sys
-from typing import Sequence
 parent_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(parent_dir + '/..')
 from bot.candle import COLUMN_NAMES  # NOQA
@@ -35,7 +34,7 @@ def main():
     create_daily_candles_file(file_path, year, month, previous_day, candles)
 
 
-def create_daily_candles_file(file_path: str, year: str, month: str, previous_day: str, candles: Sequence[str]):
+def create_daily_candles_file(file_path: str, year: str, month: str, previous_day: str, candles: list[str]):
     if (os.path.isdir(file_path) == False):
         os.mkdir(file_path)
     if (os.path.isdir(file_path + f'/{year}') == False):

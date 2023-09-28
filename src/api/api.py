@@ -1,12 +1,14 @@
+from datetime import datetime
+import sys  # NOQA
+import os  # NOQA
+parent_dir = os.path.dirname(os.path.realpath(__file__))  # NOQA
+sys.path.append(parent_dir + '/..')  # NOQA
 from dotenv import dotenv_values
 from gevent.pywsgi import WSGIServer
 from flask import Flask, request
-import sys
-import os
+from bot.candle import Candle  # NOQA
 from flask_cors import CORS
-parent_dir = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(parent_dir + '/..')
-from bot.candle import create_from_csv_line  # NOQA
+from utils.get_candles_with_previous_days import get_candles_with_previous_days
 
 
 config = dotenv_values(".env")
@@ -14,32 +16,38 @@ app = Flask(__name__)
 CORS(app)
 
 
+def keep_today_candles(year: str, month: str, day: str, candle: Candle):
+    date = datetime.fromtimestamp(candle.start_timestamp / 1000)
+    date_month = f'0{date.month}' if len(
+        str(date.month)) == 1 else str(date.month)
+    date_day = f'0{date.day}' if len(str(date.day)) == 1 else str(date.day)
+    return str(date.year) == year and date_month == month and date_day == day
+
+
 @app.get("/candles")
 def candles():
     year = request.args.get('year')
     month = request.args.get('month')
     day = request.args.get('day')
-    candles = []
-    index = 0
-    with open(f"data/daily/{year}/{month}/{day}.csv", "rb") as text_file:
-        for line in text_file:
-            index += 1
-            if (index > 1):
-                formatted_line = create_from_csv_line(
-                    line.decode('utf-8').split(','))
-                candles.append(formatted_line)
+    candles: list[Candle] = []
+    if (year != None and month != None and day != None):
+        candles = get_candles_with_previous_days(
+            year, month, day, "5min", 1)
+        candles = list(filter(lambda candle: keep_today_candles(
+            year, month, day, candle), candles))
     return candles
 
 
 @app.get("/daysList")
-def daysList():
+def days_list():
+    base_path = "data/daily/5min"
     yearsWithMonthsAndDays = []
-    for year in sorted(os.listdir("data/daily")):
+    for year in sorted(os.listdir(base_path)):
         yearsWithMonthsAndDays.append({"value": year, "months": []})
-        for month in sorted(os.listdir("data/daily/" + year)):
+        for month in sorted(os.listdir(base_path + "/" + year)):
             yearsWithMonthsAndDays[-1]["months"].append(
                 {"value": month, "days": []})
-            for day in sorted(os.listdir("data/daily/" + year + "/" + month)):
+            for day in sorted(os.listdir(base_path + "/" + year + "/" + month)):
                 yearsWithMonthsAndDays[-1]["months"][-1]["days"].append(
                     {"value": day})
 
