@@ -8,7 +8,7 @@ import json
 
 
 @dataclass
-class RSI_data:
+class RsiData:
     rsi: int
     start_timestamp: int
 
@@ -28,23 +28,23 @@ def keep_today_candles(year: str, month: str, day: str, candle: Candle):
     return str(date.year) == year and date_month == month and date_day == day
 
 
-def keep_today_rsi(year: str, month: str, day: str, rsi_data: RSI_data):
+def keep_today_rsi(year: str, month: str, day: str, rsiData: RsiData):
     date = datetime.datetime.fromtimestamp(
-        rsi_data.start_timestamp / 1000, tz=datetime.timezone.utc)
+        rsiData.start_timestamp / 1000, tz=datetime.timezone.utc)
     date_month = f'0{date.month}' if len(
         str(date.month)) == 1 else str(date.month)
     date_day = f'0{date.day}' if len(str(date.day)) == 1 else str(date.day)
     return str(date.year) == year and date_month == month and date_day == day
 
 
-def aggregate_rsi_with_timestamp(candles_list: list[Candle]) -> list[RSI_data]:
-    rsi_list: list[RSI_data] = []
+def aggregate_rsi_with_timestamp(candles_list: list[Candle]) -> list[RsiData]:
+    rsi_list: list[RsiData] = []
     temp_candles: list[Candle] = []
     for candle in candles_list:
         temp_candles.append(candle)
         rsi = get_rsi(temp_candles, 14)
         if (len(rsi) != 0):
-            rsi_list.append(RSI_data(
+            rsi_list.append(RsiData(
                 rsi=rsi[-1],
                 start_timestamp=temp_candles[-1].start_timestamp
             ))
@@ -52,11 +52,11 @@ def aggregate_rsi_with_timestamp(candles_list: list[Candle]) -> list[RSI_data]:
 
 
 @dataclass
-class RSI_dict:
-    five_min: list[RSI_data]
-    thirty_min: list[RSI_data]
-    one_hour: list[RSI_data]
-    four_hours: list[RSI_data]
+class RsiDict:
+    five_min: list[RsiData]
+    thirty_min: list[RsiData]
+    one_hour: list[RsiData]
+    four_hours: list[RsiData]
 
     def to_json(self):
         return {
@@ -68,9 +68,9 @@ class RSI_dict:
 
 
 @dataclass
-class Handle_route_return_type:
+class HandleRouteReturnType:
     candles: list[Candle]
-    rsi: RSI_dict
+    rsi: RsiDict
 
     def to_json(self):
         return {
@@ -80,16 +80,16 @@ class Handle_route_return_type:
 
 
 @dataclass
-class Candle_service:
+class CandleService:
     def handle_route(self) -> str:
         year = request.args.get('year')
         month = request.args.get('month')
         day = request.args.get('day')
         today_candles: list[Candle] = []
-        today_rsi_5min: list[RSI_data] = []
-        today_rsi_30min: list[RSI_data] = []
-        today_rsi_1h: list[RSI_data] = []
-        today_rsi_4h: list[RSI_data] = []
+        today_rsi_5min: list[RsiData] = []
+        today_rsi_30min: list[RsiData] = []
+        today_rsi_1h: list[RsiData] = []
+        today_rsi_4h: list[RsiData] = []
 
         if (year != None and month != None and day != None):
             candles_5min = get_candles_with_previous_days(
@@ -114,9 +114,9 @@ class Candle_service:
                 year, month, day, rsi), rsi_1h))
             today_rsi_4h = list(filter(lambda rsi: keep_today_rsi(
                 year, month, day, rsi), rsi_4h))
-        return json.dumps(Handle_route_return_type(
+        return json.dumps(HandleRouteReturnType(
             candles=today_candles,
-            rsi=RSI_dict(
+            rsi=RsiDict(
                 five_min=today_rsi_5min,
                 thirty_min=today_rsi_30min,
                 one_hour=today_rsi_1h,

@@ -1,9 +1,22 @@
-from dotenv import dotenv_values
+import sys  # NOQA
+import os  # NOQA
+parent_dir = os.path.dirname(os.path.realpath(__file__))  # NOQA
+sys.path.append(parent_dir + '/..')  # NOQA
 import pandas as pd
-from candle import COLUMN_NAMES, Candle, create_from_csv_line
-from indicators import get_rsi  # NOQA
+from candle import Candle, create_from_csv_line
+from indicators import get_rsi
+from pymongo import MongoClient
+from config.config_service import ConfigService
 
-config = dotenv_values(".env")
+
+configService = ConfigService()
+client = MongoClient(host=configService.get_database_host(),
+                     username=configService.get_database_user(),
+                     password=configService.get_database_password(),
+                     authSource=configService.get_database_name(),
+                     authMechanism=configService.get_database_auth_mechanism(),
+                     port=configService.get_database_port(),)
+database = client[configService.get_database_name()]
 
 FEES_PERCENTAGE = 0.0035
 CANDLES_HISTORY_LENGTH = 50
