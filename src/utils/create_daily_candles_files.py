@@ -5,15 +5,18 @@ sys.path.append(parent_dir + '/..')
 from bot.candle import COLUMN_NAMES  # NOQA
 
 
+timeframe = '5min'
+
+
 def main():
-    file_path = 'data/daily/4h'
+    file_path = f'data/daily/{timeframe}'
     candles = []
     previous_day = ''
     year = ''
     month = ''
     day = ''
 
-    with open('data/formatted/EURUSD_4h.csv', mode='rb') as csv_file:
+    with open(f'data/formatted/EURUSD_{timeframe}.csv', mode='rb') as csv_file:
         line_count = 0
         for row in csv_file:
             line = row.decode('utf-8').split(',')

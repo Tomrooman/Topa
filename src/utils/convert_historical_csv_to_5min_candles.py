@@ -25,7 +25,7 @@ def main():
                 hours = line[2][0:2]
                 minutes = int(line[2][2:4])
                 date = datetime.datetime(
-                    year=int(year), month=int(month), day=int(day), hour=int(hours), minute=int(minutes), second=0)
+                    year=int(year), month=int(month), day=int(day), hour=int(hours), minute=int(minutes), second=0, tzinfo=datetime.timezone.utc)
                 if (len(candles_tick_list) != 0):
                     last_candle_last_minute_character = int(
                         str(candles_tick_list[-1]["minute"])[-1:])

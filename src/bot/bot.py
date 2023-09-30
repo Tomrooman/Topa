@@ -1,7 +1,7 @@
 from dotenv import dotenv_values
 import pandas as pd
-from talipp.indicators import RSI
-from candle import COLUMN_NAMES, Candle, create_from_csv_line  # NOQA
+from candle import COLUMN_NAMES, Candle, create_from_csv_line
+from indicators import get_rsi  # NOQA
 
 config = dotenv_values(".env")
 
@@ -37,14 +37,6 @@ def main():
     #             test_strategy(candles)
     #         if (index > 20):
     #             return
-
-
-def get_rsi(candles: list[Candle], period: int):
-    if (len(candles) < period + 1):
-        return None
-    candles_close = list(map(lambda candle: candle.close, candles))
-    candles_rsi = RSI(input_values=candles_close, period=period)
-    return candles_rsi
 
 
 def test_strategy(candles: list[Candle]):
