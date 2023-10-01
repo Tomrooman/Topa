@@ -2,14 +2,14 @@ import sys  # NOQA
 import os  # NOQA
 parent_dir = os.path.dirname(os.path.realpath(__file__))  # NOQA
 sys.path.append(parent_dir + '/..')  # NOQA
-import datetime
+from datetime import datetime, timedelta, timezone
 from bot.candle import Candle, create_from_csv_line
 
 
 def get_candles_with_previous_days(year: str, month: str, day: str, timeframe: str, previous_days: int) -> list[Candle]:
-    date = datetime.datetime(
-        year=int(year), month=int(month), day=int(day), tzinfo=datetime.timezone.utc)
-    days = datetime.timedelta(days=previous_days)
+    date = datetime(
+        year=int(year), month=int(month), day=int(day), tzinfo=timezone.utc)
+    days = timedelta(days=previous_days)
     date = date - days
     candles = []
 
@@ -24,6 +24,6 @@ def get_candles_with_previous_days(year: str, month: str, day: str, timeframe: s
                         formatted_line = create_from_csv_line(
                             line.decode('utf-8').split(','))
                         candles.append(formatted_line)
-        days = datetime.timedelta(days=1)
+        days = timedelta(days=1)
         date = date + days
     return candles
