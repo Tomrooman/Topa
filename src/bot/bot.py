@@ -20,7 +20,7 @@ client = MongoClient(host=configService.get_database_host(),
                      port=configService.get_database_port(),)
 database = client[configService.get_database_name()]
 
-FEES_PERCENTAGE = 0.0035
+FEES = 0.000035  # 0.0035%
 CANDLES_HISTORY_LENGTH = 50
 
 # Sydney is open from 9:00 to 18:00 am UTC
@@ -30,6 +30,14 @@ CANDLES_HISTORY_LENGTH = 50
 
 
 class Bot:
+    balance = 1000
+    trade = {
+        "is_available": True,
+        "price": 0,
+        "take_profit": 0,
+        "stop_loss": 0,
+        "type": "buy"
+    }
     rsi_5min = 0
     rsi_30min = 0
     rsi_1h = 0
@@ -60,6 +68,8 @@ class Bot:
 
         while (candle_5min != None):
             print(candle_5min)
+            print('Balance:', self.balance)
+            print('Trade available:', self.trade['is_available'])
             candle_5min = self.set_candles_list(candle_5min)
             if (len(self.candles_5min_list) >= 14 and len(self.candles_30min_list) >= 14 and len(self.candles_1h_list) >= 14 and len(self.candles_4h_list) >= 14):
                 self.set_all_rsi()
@@ -68,12 +78,49 @@ class Bot:
             print('----------')
 
     def test_strategy(self):
-        print('## Test strategy ##')
-        print(f'rsi_5min: {self.rsi_5min}')
-        print(f'rsi_30min: {self.rsi_30min}')
-        print(f'rsi_1h: {self.rsi_1h}')
-        print(f'rsi_4h: {self.rsi_4h}')
-        print('## End test strategy ##')
+        current_candle = self.candles_5min_list[-1]
+        last_candle_5min_start_date = datetime.fromtimestamp(
+            current_candle.start_timestamp / 1000, tz=timezone.utc)
+        current_hour = last_candle_5min_start_date.hour
+        if (self.trade["is_available"] == False):
+            self.check_to_close_trade(current_candle)
+            return
+        if (current_hour >= 7 and current_hour <= 20):
+            if (self.rsi_5min < 30 and self.rsi_30min < 40 and self.rsi_1h < 50 and self.rsi_1h < self.rsi_4h):
+                print('## Buy ##')
+                self.trade['is_available'] = False
+                self.trade['price'] = current_candle.close
+                self.trade['take_profit'] = current_candle.close + \
+                    (current_candle.close * 0.002)
+                self.trade['stop_loss'] = current_candle.close - \
+                    (current_candle.close * 0.002)
+                self.trade['type'] = 'buy'
+            if (self.rsi_5min > 70 and self.rsi_30min > 60 and self.rsi_1h > 50 and self.rsi_1h > self.rsi_4h):
+                print('## Sell ##')
+                self.trade['is_available'] = False
+                self.trade['price'] = current_candle.close
+                self.trade['take_profit'] = current_candle.close - \
+                    (current_candle.close * 0.004)
+                self.trade['stop_loss'] = current_candle.close + \
+                    (current_candle.close * 0.002)
+                self.trade['type'] = 'sell'
+            if (self.trade['is_available'] == False):
+                print(f'type: {self.trade["type"]}')
+                print(f'price: {self.trade["price"]}')
+                print(f'take_profit: {self.trade["take_profit"]}')
+                print(f'stop_loss: {self.trade["stop_loss"]}')
+                print(f'balance: {self.balance}')
+
+    def check_to_close_trade(self, current_candle: Candle):
+        diff_price_amount = abs(current_candle.close - self.trade['price'])
+        final_amount = self.balance * (diff_price_amount / self.trade['price'])
+        fees_amount = self.balance * FEES * 2
+        if ((self.trade['type'] == 'sell' and current_candle.close >= self.trade['stop_loss']) or (self.trade['type'] == 'buy' and current_candle.close <= self.trade['stop_loss'])):
+            self.balance -= final_amount + fees_amount
+            self.trade['is_available'] = True
+        if ((self.trade['type'] == 'sell' and current_candle.close <= self.trade['take_profit']) or (self.trade['type'] == 'buy' and current_candle.close >= self.trade['take_profit'])):
+            self.balance += final_amount - fees_amount
+            self.trade['is_available'] = True
 
     # Will throw error if authentication failed
     def check_database_authorization(self):
