@@ -2,6 +2,7 @@ import sys  # NOQA
 import os  # NOQA
 parent_dir = os.path.dirname(os.path.realpath(__file__))  # NOQA
 sys.path.append(parent_dir + '/..')  # NOQA
+from models.trade_model import TradeModel, TradeType
 import pandas as pd
 from candle import Candle, create_from_csv_line
 from indicators import get_rsi
@@ -22,6 +23,10 @@ database = client[configService.get_database_name()]
 
 FEES = 0.000035  # 0.0035%
 CANDLES_HISTORY_LENGTH = 50
+BUY_TAKE_PROFIT_PERCENTAGE = 0.004
+BUY_STOP_LOSS_PERCENTAGE = 0.002
+SELL_TAKE_PROFIT_PERCENTAGE = 0.004
+SELL_STOP_LOSS_PERCENTAGE = 0.002
 
 # Sydney is open from 9:00 to 18:00 am UTC
 # Tokyo is open from 0:00 to 9:00 UTC
@@ -31,13 +36,8 @@ CANDLES_HISTORY_LENGTH = 50
 
 class Bot:
     balance = 1000
-    trade = {
-        "is_available": True,
-        "price": 0,
-        "take_profit": 0,
-        "stop_loss": 0,
-        "type": "buy"
-    }
+    trade = TradeModel(is_available=True, price=0,
+                       take_profit=0, stop_loss=0, type=TradeType('buy'), close=0, profit=0)
     rsi_5min = 0
     rsi_30min = 0
     rsi_1h = 0
@@ -57,6 +57,10 @@ class Bot:
 
     def start(self):
         self.check_database_authorization()
+
+        # Drop trades table
+        self.trade.drop_table(database)
+
         candle_5min = create_from_csv_line(
             self.open_file_5min.get_chunk().values[0])
         self.candles_30min_list.append(create_from_csv_line(
@@ -69,7 +73,7 @@ class Bot:
         while (candle_5min != None):
             print(candle_5min)
             print('Balance:', self.balance)
-            print('Trade available:', self.trade['is_available'])
+            print('Trade available:', self.trade.is_available)
             candle_5min = self.set_candles_list(candle_5min)
             if (len(self.candles_5min_list) >= 14 and len(self.candles_30min_list) >= 14 and len(self.candles_1h_list) >= 14 and len(self.candles_4h_list) >= 14):
                 self.set_all_rsi()
@@ -82,45 +86,56 @@ class Bot:
         last_candle_5min_start_date = datetime.fromtimestamp(
             current_candle.start_timestamp / 1000, tz=timezone.utc)
         current_hour = last_candle_5min_start_date.hour
-        if (self.trade["is_available"] == False):
+        if (self.trade.is_available == False):
             self.check_to_close_trade(current_candle)
             return
         if (current_hour >= 7 and current_hour <= 20):
             if (self.rsi_5min < 30 and self.rsi_30min < 40 and self.rsi_1h < 50 and self.rsi_1h < self.rsi_4h):
                 print('## Buy ##')
-                self.trade['is_available'] = False
-                self.trade['price'] = current_candle.close
-                self.trade['take_profit'] = current_candle.close + \
-                    (current_candle.close * 0.002)
-                self.trade['stop_loss'] = current_candle.close - \
-                    (current_candle.close * 0.002)
-                self.trade['type'] = 'buy'
+                self.trade.is_available = False
+                self.trade.price = current_candle.close
+                self.trade.take_profit = current_candle.close + \
+                    (current_candle.close * BUY_TAKE_PROFIT_PERCENTAGE)
+                self.trade.stop_loss = current_candle.close - \
+                    (current_candle.close * BUY_STOP_LOSS_PERCENTAGE)
+                self.trade.type = TradeType('buy')
             if (self.rsi_5min > 70 and self.rsi_30min > 60 and self.rsi_1h > 50 and self.rsi_1h > self.rsi_4h):
                 print('## Sell ##')
-                self.trade['is_available'] = False
-                self.trade['price'] = current_candle.close
-                self.trade['take_profit'] = current_candle.close - \
-                    (current_candle.close * 0.004)
-                self.trade['stop_loss'] = current_candle.close + \
-                    (current_candle.close * 0.002)
-                self.trade['type'] = 'sell'
-            if (self.trade['is_available'] == False):
-                print(f'type: {self.trade["type"]}')
-                print(f'price: {self.trade["price"]}')
-                print(f'take_profit: {self.trade["take_profit"]}')
-                print(f'stop_loss: {self.trade["stop_loss"]}')
+                self.trade.is_available = False
+                self.trade.price = current_candle.close
+                self.trade.take_profit = current_candle.close - \
+                    (current_candle.close * SELL_TAKE_PROFIT_PERCENTAGE)
+                self.trade.stop_loss = current_candle.close + \
+                    (current_candle.close * SELL_STOP_LOSS_PERCENTAGE)
+                self.trade.type = TradeType('sell')
+            if (self.trade.is_available == False):
+                print(f'type: {self.trade.type.value}')
+                print(f'price: {self.trade.price}')
+                print(f'take_profit: {self.trade.take_profit}')
+                print(f'stop_loss: {self.trade.stop_loss}')
                 print(f'balance: {self.balance}')
 
     def check_to_close_trade(self, current_candle: Candle):
-        diff_price_amount = abs(current_candle.close - self.trade['price'])
-        final_amount = self.balance * (diff_price_amount / self.trade['price'])
         fees_amount = self.balance * FEES * 2
-        if ((self.trade['type'] == 'sell' and current_candle.close >= self.trade['stop_loss']) or (self.trade['type'] == 'buy' and current_candle.close <= self.trade['stop_loss'])):
-            self.balance -= final_amount + fees_amount
-            self.trade['is_available'] = True
-        if ((self.trade['type'] == 'sell' and current_candle.close <= self.trade['take_profit']) or (self.trade['type'] == 'buy' and current_candle.close >= self.trade['take_profit'])):
-            self.balance += final_amount - fees_amount
-            self.trade['is_available'] = True
+        if ((self.trade.type.value == 'sell' and current_candle.close >= self.trade.stop_loss) or (self.trade.type.value == 'buy' and current_candle.close <= self.trade.stop_loss)):
+            diff_price_amount = abs(self.trade.stop_loss - self.trade.price)
+            loss_amount = self.balance * (diff_price_amount / self.trade.price)
+            self.balance -= loss_amount + fees_amount
+            self.trade.close = self.trade.stop_loss
+            self.trade.profit = -loss_amount
+            # Save into database
+            self.trade.insert_into_database(database)
+            self.trade.is_available = True
+        if ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.take_profit) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.take_profit)):
+            diff_price_amount = abs(self.trade.take_profit - self.trade.price)
+            profit_amount = self.balance * \
+                (diff_price_amount / self.trade.price)
+            self.balance += profit_amount - fees_amount
+            self.trade.close = self.trade.take_profit
+            self.trade.profit = profit_amount
+            # Save into database
+            self.trade.insert_into_database(database)
+            self.trade.is_available = True
 
     # Will throw error if authentication failed
     def check_database_authorization(self):
