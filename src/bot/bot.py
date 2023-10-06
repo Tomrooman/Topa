@@ -2,24 +2,12 @@ import sys  # NOQA
 import os  # NOQA
 parent_dir = os.path.dirname(os.path.realpath(__file__))  # NOQA
 sys.path.append(parent_dir + '/..')  # NOQA
-from models.trade_model import TradeModel, TradeType
+from database.models.trade_model import TradeModel, TradeType
 import pandas as pd
 from candle import Candle, create_from_csv_line
 from indicators import get_rsi
-from pymongo import MongoClient
-from config.config_service import ConfigService
 from datetime import datetime, timezone
 from dateutil import relativedelta
-
-
-configService = ConfigService()
-client = MongoClient(host=configService.get_database_host(),
-                     username=configService.get_database_user(),
-                     password=configService.get_database_password(),
-                     authSource=configService.get_database_name(),
-                     authMechanism=configService.get_database_auth_mechanism(),
-                     port=configService.get_database_port(),)
-database = client[configService.get_database_name()]
 
 FEES = 0.000035  # 0.0035%
 CANDLES_HISTORY_LENGTH = 50
@@ -37,7 +25,7 @@ SELL_STOP_LOSS_PERCENTAGE = 0.002
 class Bot:
     balance = 1000
     trade = TradeModel(is_available=True, price=0,
-                       take_profit=0, stop_loss=0, type=TradeType('buy'), close=0, profit=0)
+                       take_profit=0, stop_loss=0, type=TradeType('buy'), close=0, profit=0, opened_at='', closed_at='')
     rsi_5min = 0
     rsi_30min = 0
     rsi_1h = 0
@@ -56,10 +44,8 @@ class Bot:
     open_file_4h = pd.read_csv("data/formatted/EURUSD_4h.csv", chunksize=1)
 
     def start(self):
-        self.check_database_authorization()
-
         # Drop trades table
-        self.trade.drop_table(database)
+        TradeModel.drop_table()
 
         candle_5min = create_from_csv_line(
             self.open_file_5min.get_chunk().values[0])
@@ -83,11 +69,11 @@ class Bot:
 
     def test_strategy(self):
         current_candle = self.candles_5min_list[-1]
-        last_candle_5min_start_date = datetime.fromtimestamp(
+        current_candle_sart_date = datetime.fromtimestamp(
             current_candle.start_timestamp / 1000, tz=timezone.utc)
-        current_hour = last_candle_5min_start_date.hour
+        current_hour = current_candle_sart_date.hour
         if (self.trade.is_available == False):
-            self.check_to_close_trade(current_candle)
+            self.check_to_close_trade(current_candle, current_candle_sart_date)
             return
         if (current_hour >= 7 and current_hour <= 20):
             if (self.rsi_5min < 30 and self.rsi_30min < 40 and self.rsi_1h < 50 and self.rsi_1h < self.rsi_4h):
@@ -98,6 +84,7 @@ class Bot:
                     (current_candle.close * BUY_TAKE_PROFIT_PERCENTAGE)
                 self.trade.stop_loss = current_candle.close - \
                     (current_candle.close * BUY_STOP_LOSS_PERCENTAGE)
+                self.trade.opened_at = current_candle_sart_date.isoformat()
                 self.trade.type = TradeType('buy')
             if (self.rsi_5min > 70 and self.rsi_30min > 60 and self.rsi_1h > 50 and self.rsi_1h > self.rsi_4h):
                 print('## Sell ##')
@@ -107,6 +94,7 @@ class Bot:
                     (current_candle.close * SELL_TAKE_PROFIT_PERCENTAGE)
                 self.trade.stop_loss = current_candle.close + \
                     (current_candle.close * SELL_STOP_LOSS_PERCENTAGE)
+                self.trade.opened_at = current_candle_sart_date.isoformat()
                 self.trade.type = TradeType('sell')
             if (self.trade.is_available == False):
                 print(f'type: {self.trade.type.value}')
@@ -115,7 +103,7 @@ class Bot:
                 print(f'stop_loss: {self.trade.stop_loss}')
                 print(f'balance: {self.balance}')
 
-    def check_to_close_trade(self, current_candle: Candle):
+    def check_to_close_trade(self, current_candle: Candle, current_candle_start_date: datetime):
         fees_amount = self.balance * FEES * 2
         if ((self.trade.type.value == 'sell' and current_candle.close >= self.trade.stop_loss) or (self.trade.type.value == 'buy' and current_candle.close <= self.trade.stop_loss)):
             diff_price_amount = abs(self.trade.stop_loss - self.trade.price)
@@ -123,8 +111,9 @@ class Bot:
             self.balance -= loss_amount + fees_amount
             self.trade.close = self.trade.stop_loss
             self.trade.profit = -loss_amount
+            self.trade.closed_at = current_candle_start_date.isoformat()
             # Save into database
-            self.trade.insert_into_database(database)
+            self.trade.insert_into_database()
             self.trade.is_available = True
         if ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.take_profit) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.take_profit)):
             diff_price_amount = abs(self.trade.take_profit - self.trade.price)
@@ -133,13 +122,10 @@ class Bot:
             self.balance += profit_amount - fees_amount
             self.trade.close = self.trade.take_profit
             self.trade.profit = profit_amount
+            self.trade.closed_at = current_candle_start_date.isoformat()
             # Save into database
-            self.trade.insert_into_database(database)
+            self.trade.insert_into_database()
             self.trade.is_available = True
-
-    # Will throw error if authentication failed
-    def check_database_authorization(self):
-        database.list_collection_names()
 
     def set_candles_list(self, candle_5min: Candle) -> Candle:
         if (len(self.candles_5min_list) != 0):

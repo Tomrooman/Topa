@@ -1,6 +1,7 @@
 from bot.candle import Candle
 import datetime
 from dataclasses import dataclass
+from database.models.trade_model import TradeModel
 from utils.get_candles_with_previous_days import get_candles_with_previous_days
 from bot.indicators import get_rsi
 from flask import request
@@ -71,11 +72,13 @@ class RsiDict:
 class HandleRouteReturnType:
     candles: list[Candle]
     rsi: RsiDict
+    trades: list[TradeModel]
 
     def to_json(self):
         return {
             "candles": list(map(lambda candle: candle.to_json(), self.candles)),
-            "rsi": self.rsi.to_json()
+            "rsi": self.rsi.to_json(),
+            "trades": list(map(lambda trade: trade.to_json(), self.trades))
         }
 
 
@@ -90,6 +93,7 @@ class CandleService:
         today_rsi_30min: list[RsiData] = []
         today_rsi_1h: list[RsiData] = []
         today_rsi_4h: list[RsiData] = []
+        trades: list[TradeModel] = []
 
         if (year != None and month != None and day != None):
             candles_5min = get_candles_with_previous_days(
@@ -114,6 +118,12 @@ class CandleService:
                 year, month, day, rsi), rsi_1h))
             today_rsi_4h = list(filter(lambda rsi: keep_today_rsi(
                 year, month, day, rsi), rsi_4h))
+            start_date = datetime.datetime(
+                year=int(year), month=int(month), day=int(day), hour=0, minute=0, second=0, tzinfo=datetime.timezone.utc)
+            days = datetime.timedelta(days=1)
+            end_date = start_date + days
+            trades = TradeModel.findTradesByDate(
+                start_date.isoformat(), end_date.isoformat())
         return json.dumps(HandleRouteReturnType(
             candles=today_candles,
             rsi=RsiDict(
@@ -121,5 +131,6 @@ class CandleService:
                 thirty_min=today_rsi_30min,
                 one_hour=today_rsi_1h,
                 four_hours=today_rsi_4h
-            )
+            ),
+            trades=trades
         ).to_json())
