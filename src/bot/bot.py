@@ -75,8 +75,14 @@ class Bot:
         if (self.trade.is_available == False):
             self.check_to_close_trade(current_candle, current_candle_sart_date)
             return
+        max_rsi = max(self.rsi_5min, self.rsi_30min, self.rsi_1h, self.rsi_4h)
+        min_rsi = min(self.rsi_5min, self.rsi_30min, self.rsi_1h, self.rsi_4h)
         if (current_hour >= 7 and current_hour <= 20):
-            if (self.rsi_5min < 30 and self.rsi_30min < 40 and self.rsi_1h < 50 and self.rsi_1h < self.rsi_4h):
+            if (
+                (self.rsi_5min < 30 and self.rsi_30min < 40 and self.rsi_1h < 40 and self.rsi_1h < self.rsi_4h) or
+                (min_rsi == self.rsi_5min and self.rsi_5min <
+                 30 and self.rsi_30min < self.rsi_4h and self.rsi_1h < self.rsi_4h)
+            ):
                 print('## Buy ##')
                 self.trade.is_available = False
                 self.trade.price = current_candle.close
@@ -86,7 +92,10 @@ class Bot:
                     (current_candle.close * BUY_STOP_LOSS_PERCENTAGE)
                 self.trade.opened_at = current_candle_sart_date.isoformat()
                 self.trade.type = TradeType('buy')
-            if (self.rsi_5min > 70 and self.rsi_30min > 60 and self.rsi_1h > 50 and self.rsi_1h > self.rsi_4h):
+            if ((self.rsi_5min > 70 and self.rsi_30min > 60 and self.rsi_1h > 60 and self.rsi_1h > self.rsi_4h) or
+                    ((max_rsi == self.rsi_5min and self.rsi_5min >
+                      70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
+                    ):
                 print('## Sell ##')
                 self.trade.is_available = False
                 self.trade.price = current_candle.close
