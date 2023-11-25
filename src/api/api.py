@@ -7,11 +7,13 @@ from flask import Flask
 from flask_cors import CORS
 from routes.candle.candle_controller import blueprint as candles_blueprint
 from routes.days_list.days_list_controller import blueprint as days_list_blueprint
+from routes.stats.stats_controller import blueprint as stats_blueprint
 
 
 app = Flask(__name__)
 app.register_blueprint(candles_blueprint)
 app.register_blueprint(days_list_blueprint)
+app.register_blueprint(stats_blueprint)
 CORS(app)
 
 

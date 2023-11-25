@@ -45,6 +45,20 @@ class TradeModel:
         ), list(MongoDB.database[TABLE_NAME].find({'opened_at': {'$gte': start_date, '$lt': end_date}}))))
 
     @staticmethod
+    def findAll():
+        return list(map(lambda trade: TradeModel(
+            is_available=trade['is_available'],
+            price=trade['price'],
+            take_profit=trade['take_profit'],
+            stop_loss=trade['stop_loss'],
+            type=TradeType(trade['type']),
+            close=trade['close'],
+            profit=trade['profit'],
+            opened_at=trade['opened_at'],
+            closed_at=trade['closed_at']
+        ), list(MongoDB.database[TABLE_NAME].find())))
+
+    @staticmethod
     def drop_table():
         MongoDB.database[TABLE_NAME].drop()
 
