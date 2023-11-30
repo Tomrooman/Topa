@@ -10,12 +10,14 @@ class DayDict:
     type: str
     value: int
     trades: list[TradeModel]
+    profit: float
 
     def to_json(self):
         return {
             "type": self.type,
             "value": self.value,
-            "trades": list(map(lambda trade: trade.to_json(), self.trades))
+            "trades": list(map(lambda trade: trade.to_json(), self.trades)),
+            "profit": self.profit
         }
 
 
@@ -24,12 +26,14 @@ class MonthDict:
     type: str
     value: int
     days: list[DayDict]
+    profit: float
 
     def to_json(self):
         return {
             "type": self.type,
             "value": self.value,
-            "days": list(map(lambda day: day.to_json(), self.days))
+            "days": list(map(lambda day: day.to_json(), self.days)),
+            "profit": self.profit
         }
 
 
@@ -38,12 +42,14 @@ class YearDict:
     type: str
     value: int
     months: list[MonthDict]
+    profit: float
 
     def to_json(self):
         return {
             "type": self.type,
             "value": self.value,
-            "months": list(map(lambda month: month.to_json(), self.months))
+            "months": list(map(lambda month: month.to_json(), self.months)),
+            "profit": self.profit
         }
 
 
@@ -72,7 +78,7 @@ class StatsService:
                     break
             if existingYear is None:
                 existingYear = YearDict(
-                    type='year', value=opened_at.year, months=[])
+                    type='year', value=opened_at.year, months=[], profit=0)
                 yearDict.append(existingYear)
 
             for month in existingYear.months:
@@ -81,7 +87,7 @@ class StatsService:
                     break
             if existingMonth is None:
                 existingMonth = MonthDict(
-                    type='month', value=opened_at.month, days=[])
+                    type='month', value=opened_at.month, days=[], profit=0)
                 existingYear.months.append(existingMonth)
 
             for day in existingMonth.days:
@@ -90,10 +96,14 @@ class StatsService:
                     break
             if existingDay is None:
                 existingDay = DayDict(
-                    type='day', value=opened_at.day, trades=[trade])
+                    type='day', value=opened_at.day, trades=[trade], profit=0)
                 existingMonth.days.append(existingDay)
             else:
                 existingDay.trades.append(trade)
+
+            existingDay.profit += trade.profit
+            existingMonth.profit += trade.profit
+            existingYear.profit += trade.profit
 
         return json.dumps(HandleRouteReturnType(
             years=list(yearDict)
