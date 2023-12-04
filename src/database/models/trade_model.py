@@ -22,6 +22,7 @@ class TradeType:
 class TradeModel:
     is_available: bool
     price: float
+    position_value: float
     take_profit: float
     stop_loss: float
     type: TradeType
@@ -35,6 +36,7 @@ class TradeModel:
         return list(map(lambda trade: TradeModel(
             is_available=trade['is_available'],
             price=trade['price'],
+            position_value=trade['position_value'],
             take_profit=trade['take_profit'],
             stop_loss=trade['stop_loss'],
             type=TradeType(trade['type']),
@@ -49,6 +51,7 @@ class TradeModel:
         return list(map(lambda trade: TradeModel(
             is_available=trade['is_available'],
             price=trade['price'],
+            position_value=trade['position_value'],
             take_profit=trade['take_profit'],
             stop_loss=trade['stop_loss'],
             type=TradeType(trade['type']),
@@ -66,6 +69,7 @@ class TradeModel:
         return {
             'is_available': self.is_available,
             'price': self.price,
+            'position_value': self.position_value,
             'take_profit': self.take_profit,
             'stop_loss': self.stop_loss,
             'type': self.type.value,

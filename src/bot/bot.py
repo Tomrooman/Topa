@@ -1,3 +1,4 @@
+import math
 import sys  # NOQA
 import os  # NOQA
 parent_dir = os.path.dirname(os.path.realpath(__file__))  # NOQA
@@ -23,8 +24,8 @@ SELL_STOP_LOSS_PERCENTAGE = 0.002
 
 
 class Bot:
-    balance = 1000
-    trade = TradeModel(is_available=True, price=0,
+    balance = 2000
+    trade = TradeModel(is_available=True, price=0, position_value=0,
                        take_profit=0, stop_loss=0, type=TradeType('buy'), close=0, profit=0, opened_at='', closed_at='')
     rsi_5min = 0
     rsi_30min = 0
@@ -57,7 +58,7 @@ class Bot:
             self.open_file_4h.get_chunk().values[0]))
 
         while (candle_5min != None):
-            print(candle_5min)
+            print(candle_5min.start_date)
             print('Balance:', self.balance)
             print('Trade available:', self.trade.is_available)
             candle_5min = self.set_candles_list(candle_5min)
@@ -92,10 +93,12 @@ class Bot:
                     (current_candle.close * BUY_STOP_LOSS_PERCENTAGE)
                 self.trade.opened_at = current_candle_sart_date.isoformat()
                 self.trade.type = TradeType('buy')
+                self.trade.position_value = self.get_position_value(
+                    self.trade.price)
             if ((self.rsi_5min > 70 and self.rsi_30min > 60 and self.rsi_1h > 60 and self.rsi_1h > self.rsi_4h) or
-                    ((max_rsi == self.rsi_5min and self.rsi_5min >
-                      70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
-                    ):
+                ((max_rsi == self.rsi_5min and self.rsi_5min >
+                          70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
+                ):
                 print('## Sell ##')
                 self.trade.is_available = False
                 self.trade.price = current_candle.close
@@ -105,6 +108,8 @@ class Bot:
                     (current_candle.close * SELL_STOP_LOSS_PERCENTAGE)
                 self.trade.opened_at = current_candle_sart_date.isoformat()
                 self.trade.type = TradeType('sell')
+                self.trade.position_value = self.get_position_value(
+                    self.trade.price)
             if (self.trade.is_available == False):
                 print(f'type: {self.trade.type.value}')
                 print(f'price: {self.trade.price}')
@@ -112,11 +117,23 @@ class Bot:
                 print(f'stop_loss: {self.trade.stop_loss}')
                 print(f'balance: {self.balance}')
 
+    def get_position_value(self, price: float) -> int:
+        lot_price = 100000
+        min_lot_size = 0.01
+        min_trade_price = lot_price * min_lot_size
+
+        if (self.balance < min_trade_price):
+            raise Exception(
+                f'No enough balance to open a trade {self.balance}')
+
+        return int(math.floor(self.balance / min_trade_price) * min_trade_price)
+
     def check_to_close_trade(self, current_candle: Candle, current_candle_start_date: datetime):
-        fees_amount = self.balance * FEES * 2
+        fees_amount = self.trade.position_value * FEES * 2
         if ((self.trade.type.value == 'sell' and current_candle.close >= self.trade.stop_loss) or (self.trade.type.value == 'buy' and current_candle.close <= self.trade.stop_loss)):
             diff_price_amount = abs(self.trade.stop_loss - self.trade.price)
-            loss_amount = self.balance * (diff_price_amount / self.trade.price)
+            loss_amount = self.trade.position_value * \
+                (diff_price_amount / self.trade.price)
             self.balance -= loss_amount + fees_amount
             self.trade.close = self.trade.stop_loss
             self.trade.profit = -loss_amount
@@ -126,7 +143,7 @@ class Bot:
             self.trade.is_available = True
         if ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.take_profit) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.take_profit)):
             diff_price_amount = abs(self.trade.take_profit - self.trade.price)
-            profit_amount = self.balance * \
+            profit_amount = self.trade.position_value * \
                 (diff_price_amount / self.trade.price)
             self.balance += profit_amount - fees_amount
             self.trade.close = self.trade.take_profit
