@@ -2,35 +2,31 @@ import datetime
 
 
 def main():
-    converted_file_path = 'data/EURUSD_5min.csv'
+    converted_file_path = 'data/EURUSD_4h.csv'
     candle = {}
     candles_tick_list = []
     minutes = 0
-
     file1 = open(converted_file_path, "w")
     file1.write(
         'Symbol, Timeframe, Start timestamp, Start date, Open, High, Low, Close\n')
     file1.close()
-
     with open('data/EURUSD_historical_1min.csv', mode='rb') as csv_file:
-        line_count = 0
+        lines_count = 0
         for row in csv_file:
             line = row.decode('utf-8').split(',')
-            if line_count == 0:
+            if lines_count == 0:
                 print(f'Column names are {", ".join(line)}')
             else:
                 year = line[1][0:4]
                 month = line[1][4:6]
                 day = line[1][6:8]
-                hours = line[2][0:2]
+                hours = int(line[2][0:2])
                 minutes = int(line[2][2:4])
                 date = datetime.datetime(
                     year=int(year), month=int(month), day=int(day), hour=int(hours), minute=int(minutes), second=0, tzinfo=datetime.timezone.utc)
                 if (len(candles_tick_list) != 0):
-                    last_candle_last_minute_character = int(
-                        str(candles_tick_list[-1]["minute"])[-1:])
-                    last_minute_character = int(str(minutes)[-1:])
-                    if ((last_candle_last_minute_character < 5 and last_minute_character >= 5) or (last_candle_last_minute_character >= 5 and last_minute_character < 5) or abs(candles_tick_list[-1]["minute"] - minutes) >= 5):
+                    last_candle_hours = candles_tick_list[-1]["hours"]
+                    if (last_candle_hours != hours and (hours == 0 or hours % 4 == 0)):
                         candle = {
                             "start_timestamp": candles_tick_list[0]["start_timestamp"],
                             "start_formatted_date": candles_tick_list[0]["start_formatted_date"],
@@ -41,7 +37,7 @@ def main():
                         }
                         file1 = open(converted_file_path, "a")
                         file1.write(
-                            f'EURUSD, 5min, {candle["start_timestamp"]}, {candle["start_formatted_date"]}, {candle["open"]}, {candle["high"]}, {candle["low"]}, {candle["close"]}' + '\n')
+                            f'EURUSD, 4h, {candle["start_timestamp"]}, {candle["start_formatted_date"]}, {candle["open"]}, {candle["high"]}, {candle["low"]}, {candle["close"]}' + '\n')
                         file1.close()
                         candles_tick_list = []
                 candles_tick_list.append({
@@ -51,10 +47,11 @@ def main():
                     "high": float(line[4]),
                     "low": float(line[5]),
                     "close": float(line[6]),
+                    "hours": hours,
                     "minute": minutes,
                 })
-            line_count += 1
-            print(f'\rProcessed {line_count} lines.')
+            lines_count += 1
+            print(f'\rProcessed {lines_count} lines.')
     if (len(candles_tick_list) != 0):
         candle = {
             "start_timestamp": candles_tick_list[0]["start_timestamp"],
@@ -66,7 +63,7 @@ def main():
         }
     file1 = open(converted_file_path, "a")
     file1.write(
-        f'EURUSD, 5min, {candle["start_timestamp"]}, {candle["start_formatted_date"]}, {candle["open"]}, {candle["high"]}, {candle["low"]}, {candle["close"]}' + '\n')
+        f'EURUSD, 4h, {candle["start_timestamp"]}, {candle["start_formatted_date"]}, {candle["open"]}, {candle["high"]}, {candle["low"]}, {candle["close"]}' + '\n')
     file1.close()
     print('Done!')
 

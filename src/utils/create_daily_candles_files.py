@@ -1,20 +1,22 @@
 import os
-from typing import Sequence
+import sys
+parent_dir = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(parent_dir + '/..')
+from bot.candle import COLUMN_NAMES  # NOQA
 
-COLUMN_NAMES = {
-    'Symbol': 0, 'Timeframe': 1, 'Start timestamp': 2, 'Start date': 3, 'Open': 4, 'High': 5, 'Low': 6, 'Close': 7
-}
+
+timeframe = '5min'
 
 
 def main():
-    file_path = 'data/daily'
+    file_path = f'data/daily/{timeframe}'
     candles = []
     previous_day = ''
     year = ''
     month = ''
     day = ''
 
-    with open('data/formatted/EURUSD_5min.csv', mode='rb') as csv_file:
+    with open(f'data/formatted/EURUSD_{timeframe}.csv', mode='rb') as csv_file:
         line_count = 0
         for row in csv_file:
             line = row.decode('utf-8').split(',')
@@ -35,7 +37,7 @@ def main():
     create_daily_candles_file(file_path, year, month, previous_day, candles)
 
 
-def create_daily_candles_file(file_path: str, year: str, month: str, previous_day: str, candles: Sequence[str]):
+def create_daily_candles_file(file_path: str, year: str, month: str, previous_day: str, candles: list[str]):
     if (os.path.isdir(file_path) == False):
         os.mkdir(file_path)
     if (os.path.isdir(file_path + f'/{year}') == False):
