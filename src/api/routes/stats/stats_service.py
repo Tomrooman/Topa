@@ -141,7 +141,7 @@ class StatsService:
         for year in yearDict:
             for month in year.months:
                 if (month.profit < 0):
-                    if (len(currentLosing) >= 1 and currentLosing[-1].value + 1 != month.value):
+                    if (len(currentLosing) >= 1 and currentLosing[-1].value + 1 != month.value and (month.value != 1 or currentLosing[-1].value != 12)):
                         losingMonths = LosingMonths(count=len(currentLosing),
                                                     profit=sum(
                                                         map(lambda month: month.profit, currentLosing)),
@@ -149,7 +149,7 @@ class StatsService:
                         analytic.losingMonths.append(losingMonths)
                         currentLosing = [month]
 
-                    if (len(currentLosing) == 0 or (len(currentLosing) >= 1 and currentLosing[-1].value + 1 == month.value)):
+                    if (len(currentLosing) == 0 or (len(currentLosing) >= 1 and currentLosing[-1].value + 1 == month.value) or (len(currentLosing) >= 1 and month.value == 1 and currentLosing[-1].value == 12)):
                         currentLosing.append(month)
         if (len(currentLosing) > 0):
             losingMonths = LosingMonths(count=len(currentLosing),
