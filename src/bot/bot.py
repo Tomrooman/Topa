@@ -80,8 +80,8 @@ class Bot:
         min_rsi = min(self.rsi_5min, self.rsi_30min, self.rsi_1h, self.rsi_4h)
         if (current_hour >= 7 and current_hour <= 20):
             if (
-                (self.rsi_5min < 30 and self.rsi_30min < 40 and self.rsi_1h < 40 and self.rsi_1h < self.rsi_4h) or
-                (min_rsi == self.rsi_5min and self.rsi_5min <
+                (self.rsi_5min <= 25 and self.rsi_30min <= 40 and self.rsi_1h <= 40 and self.rsi_1h < self.rsi_4h) or
+                (min_rsi == self.rsi_5min and self.rsi_5min <=
                  30 and self.rsi_30min < self.rsi_4h and self.rsi_1h < self.rsi_4h)
             ):
                 print('## Buy ##')
@@ -95,8 +95,8 @@ class Bot:
                 self.trade.type = TradeType('buy')
                 self.trade.position_value = self.get_position_value(
                     self.trade.price)
-            if ((self.rsi_5min > 70 and self.rsi_30min > 60 and self.rsi_1h > 60 and self.rsi_1h > self.rsi_4h) or
-                ((max_rsi == self.rsi_5min and self.rsi_5min >
+            if ((self.rsi_5min >= 75 and self.rsi_30min >= 60 and self.rsi_1h >= 60 and self.rsi_1h > self.rsi_4h) or
+                ((max_rsi == self.rsi_5min and self.rsi_5min >=
                           70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
                 ):
                 print('## Sell ##')
