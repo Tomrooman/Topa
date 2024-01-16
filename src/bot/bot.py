@@ -12,10 +12,14 @@ from dateutil import relativedelta
 
 FEES = 0.000035  # 0.0035%
 CANDLES_HISTORY_LENGTH = 50
-BUY_TAKE_PROFIT_PERCENTAGE = 0.004
-BUY_STOP_LOSS_PERCENTAGE = 0.002
-SELL_TAKE_PROFIT_PERCENTAGE = 0.004
-SELL_STOP_LOSS_PERCENTAGE = 0.002
+# BUY_TAKE_PROFIT_PERCENTAGE = 0.004
+# BUY_STOP_LOSS_PERCENTAGE = 0.002
+# SELL_TAKE_PROFIT_PERCENTAGE = 0.004
+# SELL_STOP_LOSS_PERCENTAGE = 0.002
+MIN_BUY_TAKE_PROFIT_PERCENTAGE = 0.0005
+MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.0005
+MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.002
+MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.002
 
 # Sydney is open from 9:00 to 18:00 am UTC
 # Tokyo is open from 0:00 to 9:00 UTC
@@ -58,9 +62,9 @@ class Bot:
             self.open_file_4h.get_chunk().values[0]))
 
         while (candle_5min != None):
-            print(candle_5min.start_date)
-            print('Balance:', self.balance)
-            print('Trade available:', self.trade.is_available)
+            # print(candle_5min.start_date)
+            # print('Balance:', self.balance)
+            # print('Trade available:', self.trade.is_available)
             candle_5min = self.set_candles_list(candle_5min)
             if (len(self.candles_5min_list) >= 14 and len(self.candles_30min_list) >= 14 and len(self.candles_1h_list) >= 14 and len(self.candles_4h_list) >= 14):
                 self.set_all_rsi()
@@ -78,44 +82,92 @@ class Bot:
             return
         max_rsi = max(self.rsi_5min, self.rsi_30min, self.rsi_1h, self.rsi_4h)
         min_rsi = min(self.rsi_5min, self.rsi_30min, self.rsi_1h, self.rsi_4h)
+        position = self.get_position_with_tp_and_sl(
+            min_rsi, max_rsi, current_candle)
         if (current_hour >= 7 and current_hour <= 20):
             if (
-                (self.rsi_5min <= 25 and self.rsi_30min <= 40 and self.rsi_1h <= 40 and self.rsi_1h < self.rsi_4h) or
-                (min_rsi == self.rsi_5min and self.rsi_5min <=
-                 30 and self.rsi_30min < self.rsi_4h and self.rsi_1h < self.rsi_4h)
+                position is not None and position['position'] == 'BUY'
             ):
                 print('## Buy ##')
                 self.trade.is_available = False
                 self.trade.price = current_candle.close
-                self.trade.take_profit = current_candle.close + \
-                    (current_candle.close * BUY_TAKE_PROFIT_PERCENTAGE)
-                self.trade.stop_loss = current_candle.close - \
-                    (current_candle.close * BUY_STOP_LOSS_PERCENTAGE)
+                # self.trade.take_profit = current_candle.close + \
+                #     (current_candle.close * BUY_TAKE_PROFIT_PERCENTAGE)
+                # self.trade.stop_loss = current_candle.close - \
+                #     (current_candle.close * BUY_STOP_LOSS_PERCENTAGE)
                 self.trade.opened_at = current_candle_sart_date.isoformat()
                 self.trade.type = TradeType('buy')
                 self.trade.position_value = self.get_position_value(
                     self.trade.price)
-            if ((self.rsi_5min >= 75 and self.rsi_30min >= 60 and self.rsi_1h >= 60 and self.rsi_1h > self.rsi_4h) or
-                ((max_rsi == self.rsi_5min and self.rsi_5min >=
-                          70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
-                ):
+            if (position is not None and position['position'] == 'SELL'):
                 print('## Sell ##')
                 self.trade.is_available = False
                 self.trade.price = current_candle.close
-                self.trade.take_profit = current_candle.close - \
-                    (current_candle.close * SELL_TAKE_PROFIT_PERCENTAGE)
-                self.trade.stop_loss = current_candle.close + \
-                    (current_candle.close * SELL_STOP_LOSS_PERCENTAGE)
+                # self.trade.take_profit = current_candle.close - \
+                #     (current_candle.close * SELL_TAKE_PROFIT_PERCENTAGE)
+                # self.trade.stop_loss = current_candle.close + \
+                #     (current_candle.close * SELL_STOP_LOSS_PERCENTAGE)
                 self.trade.opened_at = current_candle_sart_date.isoformat()
                 self.trade.type = TradeType('sell')
                 self.trade.position_value = self.get_position_value(
                     self.trade.price)
-            if (self.trade.is_available == False):
+            if (position is not None):
                 print(f'type: {self.trade.type.value}')
                 print(f'price: {self.trade.price}')
                 print(f'take_profit: {self.trade.take_profit}')
                 print(f'stop_loss: {self.trade.stop_loss}')
                 print(f'balance: {self.balance}')
+                print(f'profit percentage: {position["profit_percentage"]}')
+
+    def get_position_with_tp_and_sl(self, min_rsi, max_rsi, current_candle):
+        previous_candles = self.candles_5min_list[-CANDLES_HISTORY_LENGTH:]
+        if ((self.rsi_5min <= 25 and self.rsi_30min <= 40 and self.rsi_1h <= 40 and self.rsi_1h < self.rsi_4h) or
+                (min_rsi == self.rsi_5min and self.rsi_5min <=
+                 30 and self.rsi_30min < self.rsi_4h and self.rsi_1h < self.rsi_4h)):  # BUY
+            higher_previous_price = max(
+                [candle.high for candle in previous_candles])
+            max_take_profit_price = current_candle.close + \
+                (current_candle.close * MAX_BUY_TAKE_PROFIT_PERCENTAGE)
+            if (higher_previous_price <= current_candle.close):
+                return
+            profit_percentage = 1/(current_candle.close /
+                                   (higher_previous_price - current_candle.close))
+            if (profit_percentage < MIN_BUY_TAKE_PROFIT_PERCENTAGE):
+                return
+            if (higher_previous_price < max_take_profit_price):
+                self.trade.take_profit = higher_previous_price
+                self.trade.stop_loss = current_candle.close - \
+                    ((higher_previous_price - current_candle.close) / 2)
+                return {'position': 'BUY', "profit_percentage": profit_percentage}
+            if (higher_previous_price >= max_take_profit_price):
+                self.trade.take_profit = max_take_profit_price
+                self.trade.stop_loss = current_candle.close - \
+                    ((max_take_profit_price - current_candle.close) / 2)
+                return {'position': 'BUY', "profit_percentage": profit_percentage}
+        if ((self.rsi_5min >= 75 and self.rsi_30min >= 60 and self.rsi_1h >= 60 and self.rsi_1h > self.rsi_4h) or
+                ((max_rsi == self.rsi_5min and self.rsi_5min >=
+                  70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
+            ):  # SELL
+            lower_previous_price = min(
+                [candle.low for candle in previous_candles])
+            min_take_profit_price = current_candle.close - \
+                (current_candle.close * MAX_SELL_TAKE_PROFIT_PERCENTAGE)
+            if (lower_previous_price >= current_candle.close):
+                return
+            profit_percentage = 1 / (current_candle.close /
+                                     (current_candle.close - lower_previous_price))
+            if (profit_percentage < MIN_SELL_TAKE_PROFIT_PERCENTAGE):
+                return
+            if (lower_previous_price > min_take_profit_price):
+                self.trade.take_profit = lower_previous_price
+                self.trade.stop_loss = current_candle.close + \
+                    ((current_candle.close - lower_previous_price) / 2)
+                return {'position': 'SELL', "profit_percentage": profit_percentage}
+            if (lower_previous_price <= min_take_profit_price):
+                self.trade.take_profit = min_take_profit_price
+                self.trade.stop_loss = current_candle.close + \
+                    ((current_candle.close - min_take_profit_price) / 2)
+                return {'position': 'SELL', "profit_percentage": profit_percentage}
 
     def get_position_value(self, price: float) -> int:
         lot_price = 100000
