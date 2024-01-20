@@ -68,6 +68,16 @@ class LosingMonths:
 
 
 @dataclass
+class TimeToComeback:
+    losingMonthsCount: int
+
+    def to_json(self):
+        return {
+            "losingMonthsCount": self.losingMonthsCount
+        }
+
+
+@dataclass
 class Analytic:
     totalTrades: int
     losingMonths: list[LosingMonths]
@@ -83,11 +93,13 @@ class Analytic:
 class HandleRouteReturnType:
     years: list[YearDict]
     analytics: Analytic
+    timeToComeback: list[TimeToComeback]
 
     def to_json(self):
         return {
             "years": list(map(lambda year: year.to_json(), self.years)),
-            "analytics": self.analytics.to_json()
+            "analytics": self.analytics.to_json(),
+            "timeToComeback": list(map(lambda timeToComeback: timeToComeback.to_json(), self.timeToComeback))
         }
 
 
@@ -137,10 +149,15 @@ class StatsService:
             existingMonth.profit += trade.profit
             existingYear.profit += trade.profit
 
+        currentLoss = 0
+        # currentProfit = 0
+        timeToComeback = []
+        currentTimeToComeback = None
         currentLosing = []
         for year in yearDict:
             for month in year.months:
                 if (month.profit < 0):
+                    currentLoss += month.profit
                     if (len(currentLosing) >= 1 and currentLosing[-1].value + 1 != month.value and (month.value != 1 or currentLosing[-1].value != 12)):
                         losingMonths = LosingMonths(count=len(currentLosing),
                                                     profit=sum(
@@ -151,14 +168,27 @@ class StatsService:
 
                     if (len(currentLosing) == 0 or (len(currentLosing) >= 1 and currentLosing[-1].value + 1 == month.value) or (len(currentLosing) >= 1 and month.value == 1 and currentLosing[-1].value == 12)):
                         currentLosing.append(month)
+                elif (month.profit > 0 and currentLoss < 0):
+                    currentLoss += month.profit
+                    if (currentTimeToComeback is None):
+                        currentTimeToComeback = TimeToComeback(
+                            losingMonthsCount=0)
+                    currentTimeToComeback.losingMonthsCount += 1
+                    if (currentLoss > 0):
+                        timeToComeback.append(currentTimeToComeback)
+                        currentTimeToComeback = None
+
         if (len(currentLosing) > 0):
             losingMonths = LosingMonths(count=len(currentLosing),
                                         profit=sum(
                                             map(lambda month: month.profit, currentLosing)),
                                         months=currentLosing)
             analytic.losingMonths.append(losingMonths)
+            if (currentTimeToComeback is not None):
+                timeToComeback.append(currentTimeToComeback)
 
         return json.dumps(HandleRouteReturnType(
             years=list(yearDict),
-            analytics=analytic
+            analytics=analytic,
+            timeToComeback=list(timeToComeback)
         ).to_json())

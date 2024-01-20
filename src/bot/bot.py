@@ -29,6 +29,9 @@ MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.002
 
 class Bot:
     balance = 2000
+    max_balance = balance
+    max_drawdown = 0
+    current_drawdown = 0
     trade = TradeModel(is_available=True, price=0, position_value=0,
                        take_profit=0, stop_loss=0, type=TradeType('buy'), close=0, profit=0, opened_at='', closed_at='')
     rsi_5min = 0
@@ -48,6 +51,10 @@ class Bot:
     open_file_1h = pd.read_csv("data/formatted/EURUSD_1h.csv", chunksize=1)
     open_file_4h = pd.read_csv("data/formatted/EURUSD_4h.csv", chunksize=1)
 
+    f = open("data/diff_to_high.txt", "w")
+    f.write("")
+    f.close()
+
     def start(self):
         # Drop trades table
         TradeModel.drop_table()
@@ -62,9 +69,14 @@ class Bot:
             self.open_file_4h.get_chunk().values[0]))
 
         while (candle_5min != None):
-            # print(candle_5min.start_date)
-            # print('Balance:', self.balance)
-            # print('Trade available:', self.trade.is_available)
+            print(candle_5min.start_date)
+            print('Balance:', self.balance)
+            print('Trade available:', self.trade.is_available)
+            print('Max balance:', self.max_balance)
+            print(
+                f'Current drawdown: {self.current_drawdown}% - {self.max_balance * (self.current_drawdown / 100)}')
+            print(
+                f'Max drawdown: {self.max_drawdown}%')
             candle_5min = self.set_candles_list(candle_5min)
             if (len(self.candles_5min_list) >= 14 and len(self.candles_30min_list) >= 14 and len(self.candles_1h_list) >= 14 and len(self.candles_4h_list) >= 14):
                 self.set_all_rsi()
@@ -116,7 +128,7 @@ class Bot:
                 print(f'price: {self.trade.price}')
                 print(f'take_profit: {self.trade.take_profit}')
                 print(f'stop_loss: {self.trade.stop_loss}')
-                print(f'balance: {self.balance}')
+                # print(f'balance: {self.balance}')
                 print(f'profit percentage: {position["profit_percentage"]}')
 
     def get_position_with_tp_and_sl(self, min_rsi, max_rsi, current_candle):
@@ -193,6 +205,7 @@ class Bot:
             # Save into database
             self.trade.insert_into_database()
             self.trade.is_available = True
+            self.set_drawdown()
         if ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.take_profit) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.take_profit)):
             diff_price_amount = abs(self.trade.take_profit - self.trade.price)
             profit_amount = self.trade.position_value * \
@@ -204,6 +217,18 @@ class Bot:
             # Save into database
             self.trade.insert_into_database()
             self.trade.is_available = True
+            self.set_drawdown()
+
+    def set_drawdown(self):
+        if (self.balance > self.max_balance):
+            self.max_balance = self.balance
+        self.current_drawdown = round(
+            ((self.max_balance - self.balance) / self.max_balance) * 100, 4)
+        if (self.current_drawdown > self.max_drawdown):
+            self.max_drawdown = self.current_drawdown
+        # print('Max balance:', self.max_balance)
+        # print('Current drawdown:', current_drawdown)
+        # print('Max drawdown:', self.max_drawdown)
 
     def set_candles_list(self, candle_5min: Candle) -> Candle:
         if (len(self.candles_5min_list) != 0):
@@ -213,8 +238,12 @@ class Bot:
                 candle_5min.start_timestamp / 1000, tz=timezone.utc)
             difference = relativedelta.relativedelta(
                 current_candle_5min_start_date, last_candle_5min_start_date)
-            if (difference.minutes > 10):
+            if (difference.minutes > 10 and current_candle_5min_start_date.hour != 23 and current_candle_5min_start_date.minute != 40 and current_candle_5min_start_date.hour != 0):
                 print('## Difference minutes too high, drop all candles list ##')
+                f = open("data/diff_to_high.txt", "a")
+                f.write(
+                    f"Difference minutes too high, drop all candles list\n{last_candle_5min_start_date.isoformat()}\n{current_candle_5min_start_date.isoformat()}\n\n")
+                f.close()
                 self.candles_5min_list = []
                 self.candles_30min_list = []
                 self.candles_1h_list = []
