@@ -195,7 +195,7 @@ class Bot:
 
     def check_to_close_trade(self, current_candle: Candle, current_candle_close_date: datetime):
         fees_amount = self.trade.position_value * FEES * 2
-        if (current_candle_close_date.hour == 23 or current_candle_close_date.hour < 7):  # Close trade at 23:00
+        if (current_candle_close_date.hour >= 22 or current_candle_close_date.hour < 7):  # Close trade at 22:00
             diff_price_amount = abs(current_candle.close - self.trade.price)
             trade_profit = self.trade.position_value * \
                 (diff_price_amount / self.trade.price)
