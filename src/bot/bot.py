@@ -16,10 +16,10 @@ CANDLES_HISTORY_LENGTH = 50
 # BUY_STOP_LOSS_PERCENTAGE = 0.002
 # SELL_TAKE_PROFIT_PERCENTAGE = 0.004
 # SELL_STOP_LOSS_PERCENTAGE = 0.002
-MIN_BUY_TAKE_PROFIT_PERCENTAGE = 0.0005
-MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.0005
-MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.002
-MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.002
+MIN_BUY_TAKE_PROFIT_PERCENTAGE = 0.001
+MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.001
+MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.003
+MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.003
 
 # Sydney is open from 9:00 to 18:00 am UTC
 # Tokyo is open from 0:00 to 9:00 UTC
@@ -74,7 +74,7 @@ class Bot:
             print('Trade available:', self.trade.is_available)
             print('Max balance:', self.max_balance)
             print(
-                f'Current drawdown: {self.current_drawdown}% - {self.max_balance * (self.current_drawdown / 100)}')
+                f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
             print(
                 f'Max drawdown: {self.max_drawdown}%')
             candle_5min = self.set_candles_list(candle_5min)
@@ -158,8 +158,8 @@ class Bot:
                     ((max_take_profit_price - current_candle.close) / 2)
                 return {'position': 'BUY', "profit_percentage": profit_percentage}
         if ((self.rsi_5min >= 75 and self.rsi_30min >= 60 and self.rsi_1h >= 60 and self.rsi_1h > self.rsi_4h) or
-            ((max_rsi == self.rsi_5min and self.rsi_5min >=
-                      70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
+                ((max_rsi == self.rsi_5min and self.rsi_5min >=
+                  70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
             ):  # SELL
             lower_previous_price = min(
                 [candle.low for candle in previous_candles])
@@ -195,22 +195,7 @@ class Bot:
 
     def check_to_close_trade(self, current_candle: Candle, current_candle_close_date: datetime):
         fees_amount = self.trade.position_value * FEES * 2
-        if (current_candle_close_date.hour >= 22 or current_candle_close_date.hour < 7):  # Close trade at 22:00
-            diff_price_amount = abs(current_candle.close - self.trade.price)
-            trade_profit = self.trade.position_value * \
-                (diff_price_amount / self.trade.price)
-            if ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.price) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.price)):
-                self.balance += trade_profit - fees_amount
-                self.trade.profit = trade_profit
-            if ((self.trade.type.value == 'sell' and current_candle.close >= self.trade.price) or (self.trade.type.value == 'buy' and current_candle.close <= self.trade.price)):
-                self.balance -= trade_profit + fees_amount
-                self.trade.profit = -trade_profit
-            self.trade.close = current_candle.close
-            self.trade.closed_at = current_candle_close_date.isoformat()
-            # Save into database
-            self.trade.insert_into_database()
-            self.trade.is_available = True
-            self.set_drawdown()
+        # Loss
         if ((self.trade.type.value == 'sell' and current_candle.close >= self.trade.stop_loss) or (self.trade.type.value == 'buy' and current_candle.close <= self.trade.stop_loss)):
             diff_price_amount = abs(self.trade.stop_loss - self.trade.price)
             loss_amount = self.trade.position_value * \
@@ -223,6 +208,7 @@ class Bot:
             self.trade.insert_into_database()
             self.trade.is_available = True
             self.set_drawdown()
+        # Profit
         if ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.take_profit) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.take_profit)):
             diff_price_amount = abs(self.trade.take_profit - self.trade.price)
             profit_amount = self.trade.position_value * \
@@ -230,6 +216,38 @@ class Bot:
             self.balance += profit_amount - fees_amount
             self.trade.close = self.trade.take_profit
             self.trade.profit = profit_amount
+            self.trade.closed_at = current_candle_close_date.isoformat()
+            # Save into database
+            self.trade.insert_into_database()
+            self.trade.is_available = True
+            self.set_drawdown()
+
+        # Close trade in profit between 20:00 and 22:00
+        if (current_candle_close_date.hour >= 20 and current_candle_close_date.hour < 22):
+            diff_price_amount = abs(current_candle.close - self.trade.price)
+            trade_profit = self.trade.position_value * \
+                (diff_price_amount / self.trade.price)
+            if ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.price) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.price)):
+                self.balance += trade_profit - fees_amount
+                self.trade.profit = trade_profit
+                self.trade.close = current_candle.close
+                self.trade.closed_at = current_candle_close_date.isoformat()
+                # Save into database
+                self.trade.insert_into_database()
+                self.trade.is_available = True
+                self.set_drawdown()
+        # Close trade at 22:00
+        if (current_candle_close_date.hour >= 22 or current_candle_close_date.hour < 7):
+            diff_price_amount = abs(current_candle.close - self.trade.price)
+            trade_profit = self.trade.position_value * \
+                (diff_price_amount / self.trade.price)
+            if ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.price) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.price)):
+                self.balance += trade_profit - fees_amount
+                self.trade.profit = trade_profit
+            if ((self.trade.type.value == 'sell' and current_candle.close >= self.trade.price) or (self.trade.type.value == 'buy' and current_candle.close <= self.trade.price)):
+                self.balance -= trade_profit + fees_amount
+                self.trade.profit = -trade_profit
+            self.trade.close = current_candle.close
             self.trade.closed_at = current_candle_close_date.isoformat()
             # Save into database
             self.trade.insert_into_database()
