@@ -1,7 +1,6 @@
 import datetime
 from dataclasses import dataclass
 from database.models.trade_model import TradeModel
-from flask import request
 import json
 
 
@@ -150,7 +149,6 @@ class StatsService:
             existingYear.profit += trade.profit
 
         currentLoss = 0
-        # currentProfit = 0
         timeToComeback = []
         currentTimeToComeback = None
         currentLosing = []
@@ -168,15 +166,18 @@ class StatsService:
 
                     if (len(currentLosing) == 0 or (len(currentLosing) >= 1 and currentLosing[-1].value + 1 == month.value) or (len(currentLosing) >= 1 and month.value == 1 and currentLosing[-1].value == 12)):
                         currentLosing.append(month)
-                elif (month.profit > 0 and currentLoss < 0):
+                if (currentLoss < 0 and month.profit > 0):
                     currentLoss += month.profit
+                if (currentLoss < 0):
                     if (currentTimeToComeback is None):
                         currentTimeToComeback = TimeToComeback(
                             losingMonthsCount=0)
                     currentTimeToComeback.losingMonthsCount += 1
-                    if (currentLoss > 0):
+                if (currentLoss > 0):
+                    if (currentTimeToComeback is not None):
                         timeToComeback.append(currentTimeToComeback)
                         currentTimeToComeback = None
+                    currentLoss = 0
 
         if (len(currentLosing) > 0):
             losingMonths = LosingMonths(count=len(currentLosing),

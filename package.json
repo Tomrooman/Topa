@@ -7,7 +7,8 @@
   "scripts": {
     "start:bot": "python3 src/bot/bot.py",
     "start:api:dev": "flask --app src/api/api.py run --debug",
-    "start:api:prod": "python src/api/api.py",
+    "start:api:prod": "python3 src/api/api.py",
+    "stats": "python3 src/bot/stats.py",
     "convert:5min": "python3 src/utils/convert_historical_csv_to_5min_candles.py",
     "convert:30min": "python3 src/utils/convert_historical_csv_to_30min_candles.py",
     "convert:1h": "python3 src/utils/convert_historical_csv_to_1h_candles.py",
