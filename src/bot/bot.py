@@ -77,12 +77,19 @@ class Bot:
                 f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
             print(
                 f'Max drawdown: {self.max_drawdown}%')
-            candle_5min = self.set_candles_list(candle_5min)
-            if (len(self.candles_5min_list) >= 14 and len(self.candles_30min_list) >= 14 and len(self.candles_1h_list) >= 14 and len(self.candles_4h_list) >= 14):
-                self.set_all_rsi()
-            if (self.rsi_5min != 0 and self.rsi_30min != 0 and self.rsi_1h != 0 and self.rsi_4h != 0):
-                self.test_strategy()
-            print('----------')
+            try:
+                candle_5min = self.set_candles_list(candle_5min)
+            except Exception as e:
+                candle_5min = None
+                continue
+            else:
+                if (len(self.candles_5min_list) >= 14 and len(self.candles_30min_list) >= 14 and len(self.candles_1h_list) >= 14 and len(self.candles_4h_list) >= 7):
+                    self.set_all_rsi()
+                if (self.rsi_5min != 0 and self.rsi_30min != 0 and self.rsi_1h != 0 and self.rsi_4h != 0):
+                    self.test_strategy()
+                print('----------')
+
+        print('\n----- Backtest done -----\n')
 
     def test_strategy(self):
         current_candle = self.candles_5min_list[-1]
@@ -312,7 +319,7 @@ class Bot:
         rsi_5min_local = get_rsi(self.candles_5min_list, 14)
         rsi_30min_local = get_rsi(self.candles_30min_list, 14)
         rsi_1h_local = get_rsi(self.candles_1h_list, 14)
-        rsi_4h_local = get_rsi(self.candles_4h_list, 14)
+        rsi_4h_local = get_rsi(self.candles_4h_list, 7)
         if (len(rsi_5min_local) > 0):
             self.rsi_5min = rsi_5min_local[-1]
         if (len(rsi_30min_local) > 0):

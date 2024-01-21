@@ -38,12 +38,12 @@ def keep_today_rsi(year: str, month: str, day: str, rsiData: RsiData):
     return str(date.year) == year and date_month == month and date_day == day
 
 
-def aggregate_rsi_with_timestamp(candles_list: list[Candle]) -> list[RsiData]:
+def aggregate_rsi_with_timestamp(candles_list: list[Candle], rsi_strength: int) -> list[RsiData]:
     rsi_list: list[RsiData] = []
     temp_candles: list[Candle] = []
     for candle in candles_list:
         temp_candles.append(candle)
-        rsi = get_rsi(temp_candles, 14)
+        rsi = get_rsi(temp_candles, rsi_strength)
         if (len(rsi) != 0):
             rsi_list.append(RsiData(
                 rsi=rsi[-1],
@@ -104,10 +104,10 @@ class CandleService:
                 year, month, day, "1h", 2)
             candles_4h = get_candles_with_previous_days(
                 year, month, day, "4h", 5)
-            rsi_5min = aggregate_rsi_with_timestamp(candles_5min)
-            rsi_30min = aggregate_rsi_with_timestamp(candles_30min)
-            rsi_1h = aggregate_rsi_with_timestamp(candles_1h)
-            rsi_4h = aggregate_rsi_with_timestamp(candles_4h)
+            rsi_5min = aggregate_rsi_with_timestamp(candles_5min, 14)
+            rsi_30min = aggregate_rsi_with_timestamp(candles_30min, 14)
+            rsi_1h = aggregate_rsi_with_timestamp(candles_1h, 14)
+            rsi_4h = aggregate_rsi_with_timestamp(candles_4h, 7)
             today_candles = list(filter(lambda candle: keep_today_candles(
                 year, month, day, candle), candles_5min))
             today_rsi_5min = list(filter(lambda rsi: keep_today_rsi(

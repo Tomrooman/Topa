@@ -10,13 +10,15 @@ class DayDict:
     value: int
     trades: list[TradeModel]
     profit: float
+    percentage_from_balance: float
 
     def to_json(self):
         return {
             "type": self.type,
             "value": self.value,
             "trades": list(map(lambda trade: trade.to_json(), self.trades)),
-            "profit": self.profit
+            "profit": self.profit,
+            "percentage_from_balance": self.percentage_from_balance
         }
 
 
@@ -26,13 +28,15 @@ class MonthDict:
     value: int
     days: list[DayDict]
     profit: float
+    percentage_from_balance: float
 
     def to_json(self):
         return {
             "type": self.type,
             "value": self.value,
             "days": list(map(lambda day: day.to_json(), self.days)),
-            "profit": self.profit
+            "profit": self.profit,
+            "percentage_from_balance": self.percentage_from_balance
         }
 
 
@@ -42,13 +46,15 @@ class YearDict:
     value: int
     months: list[MonthDict]
     profit: float
+    percentage_from_balance: float
 
     def to_json(self):
         return {
             "type": self.type,
             "value": self.value,
             "months": list(map(lambda month: month.to_json(), self.months)),
-            "profit": self.profit
+            "profit": self.profit,
+            "percentage_from_balance": self.percentage_from_balance
         }
 
 
@@ -57,12 +63,14 @@ class LosingMonths:
     count: int
     profit: float
     months: list[MonthDict]
+    percentage_from_balance: float
 
     def to_json(self):
         return {
             "inRow": self.count,
             "profit": self.profit,
             "months": list(map(lambda month: month.to_json(), self.months)),
+            "percentage_from_balance": self.percentage_from_balance
         }
 
 
@@ -104,11 +112,9 @@ class HandleRouteReturnType:
 
 @dataclass
 class StatsService:
-    def handle_route(self) -> str:
-        trades = TradeModel.findAll()
+    def group_trades_by_days_months_years(self, trades: list[TradeModel]) -> list[YearDict]:
         yearDict = []
-        analytic = Analytic(totalTrades=len(trades),
-                            losingMonths=[])
+
         for trade in trades:
             opened_at = datetime.datetime.strptime(
                 trade.opened_at, "%Y-%m-%dT%H:%M:%S+00:00")
@@ -121,7 +127,7 @@ class StatsService:
                     break
             if existingYear is None:
                 existingYear = YearDict(
-                    type='year', value=opened_at.year, months=[], profit=0)
+                    type='year', value=opened_at.year, months=[], profit=0, percentage_from_balance=0)
                 yearDict.append(existingYear)
 
             for month in existingYear.months:
@@ -130,7 +136,7 @@ class StatsService:
                     break
             if existingMonth is None:
                 existingMonth = MonthDict(
-                    type='month', value=opened_at.month, days=[], profit=0)
+                    type='month', value=opened_at.month, days=[], profit=0, percentage_from_balance=0)
                 existingYear.months.append(existingMonth)
 
             for day in existingMonth.days:
@@ -139,28 +145,46 @@ class StatsService:
                     break
             if existingDay is None:
                 existingDay = DayDict(
-                    type='day', value=opened_at.day, trades=[trade], profit=0)
+                    type='day', value=opened_at.day, trades=[trade], profit=0, percentage_from_balance=0)
                 existingMonth.days.append(existingDay)
             else:
                 existingDay.trades.append(trade)
-
             existingDay.profit += trade.profit
             existingMonth.profit += trade.profit
             existingYear.profit += trade.profit
 
+        return yearDict
+
+    def calcul_stats(self, trades: list[TradeModel], yearDict: list[YearDict]):
+        analytic = Analytic(totalTrades=len(trades),
+                            losingMonths=[])
+        current_balance = 2000
         currentLoss = 0
-        timeToComeback = []
+        timeToComeback: list[TimeToComeback] = []
         currentTimeToComeback = None
         currentLosing = []
         for year in yearDict:
             for month in year.months:
+
+                for day in month.days:
+                    day.percentage_from_balance = round(
+                        (day.profit / current_balance) * 100, 4)
+
+                month.percentage_from_balance = round(
+                    (month.profit / current_balance) * 100, 4)
+
                 if (month.profit < 0):
                     currentLoss += month.profit
                     if (len(currentLosing) >= 1 and currentLosing[-1].value + 1 != month.value and (month.value != 1 or currentLosing[-1].value != 12)):
+                        losing_months_profit = sum(
+                            map(lambda month: month.profit, currentLosing))
+                        losing_months_percentage = sum(
+                            map(lambda month: month.percentage_from_balance, currentLosing))
                         losingMonths = LosingMonths(count=len(currentLosing),
-                                                    profit=sum(
-                                                        map(lambda month: month.profit, currentLosing)),
-                                                    months=currentLosing)
+                                                    profit=losing_months_profit,
+                                                    months=currentLosing,
+                                                    percentage_from_balance=losing_months_percentage
+                                                    )
                         analytic.losingMonths.append(losingMonths)
                         currentLosing = [month]
 
@@ -179,17 +203,29 @@ class StatsService:
                         currentTimeToComeback = None
                     currentLoss = 0
 
+            year.percentage_from_balance = round(
+                (year.profit / current_balance) * 100, 4)
+            current_balance += year.profit
+
         if (len(currentLosing) > 0):
+            losing_months_profit = sum(
+                map(lambda month: month.profit, currentLosing))
             losingMonths = LosingMonths(count=len(currentLosing),
-                                        profit=sum(
-                                            map(lambda month: month.profit, currentLosing)),
-                                        months=currentLosing)
+                                        profit=losing_months_profit,
+                                        months=currentLosing, percentage_from_balance=round((losing_months_profit / (current_balance - yearDict[-1].profit)) * 100, 4))
             analytic.losingMonths.append(losingMonths)
             if (currentTimeToComeback is not None):
                 timeToComeback.append(currentTimeToComeback)
 
+        return {"analytic": analytic, "timeToComeback": timeToComeback}
+
+    def handle_route(self) -> str:
+        trades = TradeModel.findAll()
+        yearDict = self.group_trades_by_days_months_years(trades)
+        stats = self.calcul_stats(trades, yearDict)
+
         return json.dumps(HandleRouteReturnType(
             years=list(yearDict),
-            analytics=analytic,
-            timeToComeback=list(timeToComeback)
+            analytics=stats['analytic'],
+            timeToComeback=list(stats['timeToComeback'])
         ).to_json())
