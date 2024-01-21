@@ -127,7 +127,7 @@ class Bot:
         min_rsi = min(self.rsi_5min, self.rsi_30min, self.rsi_1h, self.rsi_4h)
         position = self.get_position_with_tp_and_sl(
             min_rsi, max_rsi, current_candle)
-        if (current_hour >= 7 and current_hour <= 18):
+        if (current_hour >= 7 and current_hour <= 19):
             if (
                 position is not None and position['position'] == 'BUY'
             ):
@@ -250,8 +250,8 @@ class Bot:
             self.trade.is_available = True
             self.set_drawdown()
 
-        # Close trade in profit between 20:00 and 22:00
-        if (current_candle_close_date.hour >= 20 and current_candle_close_date.hour < 22):
+        # Close trade in profit between 21:00 and 22:00
+        if (current_candle_close_date.hour >= 21 and current_candle_close_date.hour < 22):
             diff_price_amount = abs(current_candle.close - self.trade.price)
             trade_profit = self.trade.position_value * \
                 (diff_price_amount / self.trade.price)
