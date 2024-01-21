@@ -9,6 +9,7 @@ from candle import Candle, create_from_csv_line
 from indicators import get_rsi
 from datetime import datetime, timezone
 from dateutil import relativedelta
+import curses
 
 FEES = 0.000035  # 0.0035%
 CANDLES_HISTORY_LENGTH = 50
@@ -54,8 +55,11 @@ class Bot:
     f = open("data/diff_to_high.txt", "w")
     f.write("")
     f.close()
+    stdscr = curses.initscr()
+    last_candle_processed_date = None
 
     def start(self):
+        self.stdscr.clear()
         # Drop trades table
         TradeModel.drop_table()
 
@@ -68,28 +72,45 @@ class Bot:
         self.candles_4h_list.append(create_from_csv_line(
             self.open_file_4h.get_chunk().values[0]))
 
-        while (candle_5min != None):
-            print(candle_5min.start_date)
-            print('Balance:', self.balance)
-            print('Trade available:', self.trade.is_available)
-            print('Max balance:', self.max_balance)
+        try:
+            while (candle_5min != None):
+                self.stdscr.clear()
+                self.stdscr.addstr(
+                    0, 0, f'Candle start date: {candle_5min.start_date}')
+                self.stdscr.addstr(1, 0, f'Balance: {self.balance}')
+                self.stdscr.addstr(
+                    2, 0, f'Trade available: {self.trade.is_available}')
+                self.stdscr.addstr(3, 0, f'Max balance: {self.max_balance}')
+                self.stdscr.addstr(4, 0,
+                                   f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
+                self.stdscr.addstr(5, 0,
+                                   f'Max drawdown: {self.max_drawdown}%')
+                try:
+                    candle_5min = self.set_candles_list(candle_5min)
+                    self.last_candle_processed_date = candle_5min.start_date
+                except Exception as e:
+                    candle_5min = None
+                    continue
+                else:
+                    if (len(self.candles_5min_list) >= 14 and len(self.candles_30min_list) >= 14 and len(self.candles_1h_list) >= 14 and len(self.candles_4h_list) >= 7):
+                        self.set_all_rsi()
+                    if (self.rsi_5min != 0 and self.rsi_30min != 0 and self.rsi_1h != 0 and self.rsi_4h != 0):
+                        self.test_strategy()
+                    self.stdscr.addstr(6, 0, '----------')
+                    self.stdscr.refresh()
+            curses.endwin()
+            print('\n----- Backtest done -----\n')
+            print(f'Candle start date: {self.last_candle_processed_date}')
+            print(f'Balance: {self.balance}')
+            print(f'Trade available: {self.trade.is_available}')
+            print(f'Max balance: {self.max_balance}')
             print(
                 f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
-            print(
-                f'Max drawdown: {self.max_drawdown}%')
-            try:
-                candle_5min = self.set_candles_list(candle_5min)
-            except Exception as e:
-                candle_5min = None
-                continue
-            else:
-                if (len(self.candles_5min_list) >= 14 and len(self.candles_30min_list) >= 14 and len(self.candles_1h_list) >= 14 and len(self.candles_4h_list) >= 7):
-                    self.set_all_rsi()
-                if (self.rsi_5min != 0 and self.rsi_30min != 0 and self.rsi_1h != 0 and self.rsi_4h != 0):
-                    self.test_strategy()
-                print('----------')
-
-        print('\n----- Backtest done -----\n')
+            print(f'Max drawdown: {self.max_drawdown}%')
+            print('\n')
+        except KeyboardInterrupt:
+            curses.endwin()
+            pass
 
     def test_strategy(self):
         current_candle = self.candles_5min_list[-1]
@@ -106,11 +127,11 @@ class Bot:
         min_rsi = min(self.rsi_5min, self.rsi_30min, self.rsi_1h, self.rsi_4h)
         position = self.get_position_with_tp_and_sl(
             min_rsi, max_rsi, current_candle)
-        if (current_hour >= 7 and current_hour <= 20):
+        if (current_hour >= 7 and current_hour <= 18):
             if (
                 position is not None and position['position'] == 'BUY'
             ):
-                print('## Buy ##')
+                # print('## Buy ##')
                 self.trade.is_available = False
                 self.trade.price = current_candle.close
                 # self.trade.take_profit = current_candle.close + \
@@ -121,7 +142,7 @@ class Bot:
                 self.trade.type = TradeType('buy')
                 self.trade.position_value = self.get_position_value()
             if (position is not None and position['position'] == 'SELL'):
-                print('## Sell ##')
+                # print('## Sell ##')
                 self.trade.is_available = False
                 self.trade.price = current_candle.close
                 # self.trade.take_profit = current_candle.close - \
@@ -131,13 +152,13 @@ class Bot:
                 self.trade.opened_at = current_candle_sart_date.isoformat()
                 self.trade.type = TradeType('sell')
                 self.trade.position_value = self.get_position_value()
-            if (position is not None):
-                print(f'type: {self.trade.type.value}')
-                print(f'price: {self.trade.price}')
-                print(f'take_profit: {self.trade.take_profit}')
-                print(f'stop_loss: {self.trade.stop_loss}')
+            # if (position is not None):
+                # print(f'type: {self.trade.type.value}')
+                # print(f'price: {self.trade.price}')
+                # print(f'take_profit: {self.trade.take_profit}')
+                # print(f'stop_loss: {self.trade.stop_loss}')
                 # print(f'balance: {self.balance}')
-                print(f'profit percentage: {position["profit_percentage"]}')
+                # print(f'profit percentage: {position["profit_percentage"]}')
 
     def get_position_with_tp_and_sl(self, min_rsi, max_rsi, current_candle):
         previous_candles = self.candles_5min_list[-CANDLES_HISTORY_LENGTH:]
@@ -165,9 +186,9 @@ class Bot:
                     ((max_take_profit_price - current_candle.close) / 2)
                 return {'position': 'BUY', "profit_percentage": profit_percentage}
         if ((self.rsi_5min >= 75 and self.rsi_30min >= 60 and self.rsi_1h >= 60 and self.rsi_1h > self.rsi_4h) or
-                ((max_rsi == self.rsi_5min and self.rsi_5min >=
-                  70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
-            ):  # SELL
+                    ((max_rsi == self.rsi_5min and self.rsi_5min >=
+                      70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
+                ):  # SELL
             lower_previous_price = min(
                 [candle.low for candle in previous_candles])
             min_take_profit_price = current_candle.close - \
@@ -281,7 +302,7 @@ class Bot:
             difference = relativedelta.relativedelta(
                 current_candle_5min_start_date, last_candle_5min_start_date)
             if (difference.minutes > 10 and current_candle_5min_start_date.hour != 23 and current_candle_5min_start_date.minute != 40 and current_candle_5min_start_date.hour != 0):
-                print('## Difference minutes too high, drop all candles list ##')
+                # print('## Difference minutes too high, drop all candles list ##')
                 f = open("data/diff_to_high.txt", "a")
                 f.write(
                     f"Difference minutes too high, drop all candles list\n{last_candle_5min_start_date.isoformat()}\n{current_candle_5min_start_date.isoformat()}\n\n")

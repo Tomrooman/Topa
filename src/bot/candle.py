@@ -31,9 +31,9 @@ def create_from_csv_line(line: list[str]) -> Candle:
     # formatted_date = datetime.datetime.fromtimestamp(
     #     int(splitted_line[COLUMN_NAMES['Start timestamp']]) / 1000).strftime("%Y-%m-%d %H:%M:%S")
     return Candle(
-        symbol=line[COLUMN_NAMES['Symbol']],
+        symbol=line[COLUMN_NAMES['Symbol']].strip(),
         start_timestamp=int(line[COLUMN_NAMES['Start timestamp']]),
-        start_date=line[COLUMN_NAMES['Start date']],
+        start_date=line[COLUMN_NAMES['Start date']].strip(),
         open=float(line[COLUMN_NAMES['Open']]),
         high=float(line[COLUMN_NAMES['High']]),
         low=float(line[COLUMN_NAMES['Low']]),
