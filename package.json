@@ -5,7 +5,8 @@
   "author": "Tom Rooman",
   "main": "index.js",
   "scripts": {
-    "start:bot": "python3 src/bot/bot.py",
+    "start:bot:dev": "python3 src/bot/bot_dev.py",
+    "start:bot:prod": "python3 src/bot/bot_prod.py",
     "start:api:dev": "flask --app src/api/api.py run --debug",
     "start:api:prod": "python3 src/api/api.py",
     "stats": "python3 src/bot/stats.py",
