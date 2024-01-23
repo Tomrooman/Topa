@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from pymongo import database
 from database.instance import MongoDB
 
 

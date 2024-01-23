@@ -7,6 +7,9 @@ environmentVariablesNeeded = [
     "DATABASE_HOST",
     "DATABASE_PORT",
     "DATABASE_AUTH_MECHANISM",
+    "WEB_API_ID",
+    "WEB_API_KEY",
+    "WEB_API_SECRET"
 ]
 
 
@@ -37,3 +40,12 @@ class ConfigService:
 
     def get_database_auth_mechanism(self) -> str:
         return str(self.config['DATABASE_AUTH_MECHANISM'])
+
+    def get_web_api_id(self) -> str:
+        return str(self.config['WEB_API_ID'])
+
+    def get_web_api_key(self) -> str:
+        return str(self.config['WEB_API_KEY'])
+
+    def get_web_api_secret(self) -> str:
+        return str(self.config['WEB_API_SECRET'])
