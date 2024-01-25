@@ -1,8 +1,4 @@
 import math
-import sys  # NOQA
-import os
-parent_dir = os.path.dirname(os.path.realpath(__file__))  # NOQA
-sys.path.append(parent_dir + '/..')  # NOQA
 from database.models.trade_model import TradeModel, TradeType
 from candle import Candle
 from indicators import get_rsi
@@ -16,6 +12,7 @@ from datetime import datetime, timezone
 
 class BotManager:
     FEES = 0.000035  # 0.0035%
+    LEVERAGE = 5
     CANDLES_HISTORY_LENGTH = 50
     MIN_BUY_TAKE_PROFIT_PERCENTAGE = 0.001
     MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.001
@@ -34,10 +31,10 @@ class BotManager:
     rsi_1h = 0
     rsi_4h = 0
 
-    candles_5min_list = []
-    candles_30min_list = []
-    candles_1h_list = []
-    candles_4h_list = []
+    candles_5min_list: list[Candle] = []
+    candles_30min_list: list[Candle] = []
+    candles_1h_list: list[Candle] = []
+    candles_4h_list: list[Candle] = []
 
     def get_current_candle_with_start_and_close_date(self):
         current_candle = self.candles_5min_list[-1]
@@ -105,9 +102,9 @@ class BotManager:
                     ((max_take_profit_price - current_candle.close) / 2)
                 return {'position': 'BUY', "profit_percentage": profit_percentage}
         if ((self.rsi_5min >= 75 and self.rsi_30min >= 60 and self.rsi_1h >= 60 and self.rsi_1h > self.rsi_4h) or
-            ((max_rsi == self.rsi_5min and self.rsi_5min >=
-                      70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
-            ):  # SELL
+                ((max_rsi == self.rsi_5min and self.rsi_5min >=
+                  70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
+                ):  # SELL
             lower_previous_price = min(
                 [candle.low for candle in previous_candles])
             min_take_profit_price = current_candle.close - \
@@ -138,7 +135,7 @@ class BotManager:
             raise Exception(
                 f'No enough balance to open a trade {self.balance}')
 
-        return int(math.floor(self.balance / min_trade_price) * min_trade_price)
+        return int(math.floor(((self.balance * self.LEVERAGE) / min_trade_price)) * min_trade_price)
 
     def set_drawdown(self):
         if (self.balance > self.max_balance):

@@ -9,7 +9,6 @@ COLUMN_NAMES = {
 class Candle:
     symbol: str
     start_timestamp: int
-    start_date: str
     open: float
     high: float
     low: float
@@ -19,7 +18,6 @@ class Candle:
         return {
             "symbol": self.symbol,
             "start_timestamp": self.start_timestamp,
-            "start_date": self.start_date,
             "open": self.open,
             "high": self.high,
             "low": self.low,
@@ -33,7 +31,6 @@ def create_from_csv_line(line: list[str]) -> Candle:
     return Candle(
         symbol=line[COLUMN_NAMES['Symbol']].strip(),
         start_timestamp=int(line[COLUMN_NAMES['Start timestamp']]),
-        start_date=line[COLUMN_NAMES['Start date']].strip(),
         open=float(line[COLUMN_NAMES['Open']]),
         high=float(line[COLUMN_NAMES['High']]),
         low=float(line[COLUMN_NAMES['Low']]),

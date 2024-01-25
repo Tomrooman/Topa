@@ -40,9 +40,11 @@ class BotDev(BotManager):
 
         try:
             while (candle_5min != None):
+                candle_5min_start_date = datetime.fromtimestamp(
+                    candle_5min.start_timestamp / 1000, tz=timezone.utc)
                 self.stdscr.clear()
                 self.stdscr.addstr(
-                    0, 0, f'Candle start date: {candle_5min.start_date}')
+                    0, 0, f'Candle start date: {candle_5min_start_date}')
                 self.stdscr.addstr(1, 0, f'Balance: {self.balance}')
                 self.stdscr.addstr(
                     2, 0, f'Trade available: {self.trade.is_available}')
@@ -53,7 +55,7 @@ class BotDev(BotManager):
                                    f'Max drawdown: {self.max_drawdown}%')
                 try:
                     candle_5min = self.set_candles_list(candle_5min)
-                    self.last_candle_processed_date = candle_5min.start_date
+                    self.last_candle_processed_date = candle_5min_start_date
                 except Exception as e:
                     candle_5min = None
                     continue
