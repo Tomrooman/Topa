@@ -10,7 +10,7 @@ import json
 
 @dataclass
 class RsiData:
-    rsi: int
+    rsi: float
     start_timestamp: int
 
     def to_json(self):

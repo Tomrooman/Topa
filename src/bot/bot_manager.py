@@ -1,4 +1,6 @@
+from dataclasses import dataclass
 import math
+from typing import Literal
 from database.models.trade_model import TradeModel, TradeType
 from candle import Candle
 from indicators import get_rsi
@@ -8,6 +10,12 @@ from datetime import datetime, timezone
 # Tokyo is open from 0:00 to 9:00 UTC
 # London is open from 7:00 to 16:00 UTC
 # New York is open from 13:00 to 22:00 UTC
+
+
+@dataclass
+class RsiData:
+    value: float
+    period: int
 
 
 class BotManager:
@@ -24,12 +32,12 @@ class BotManager:
     max_drawdown = 0
     current_drawdown = 0
     current_hour = 0
-    trade = TradeModel(is_available=True, price=0, position_value=0,
-                       take_profit=0, stop_loss=0, type=TradeType('buy'), close=0, profit=0, opened_at='', closed_at='')
-    rsi_5min = 0
-    rsi_30min = 0
-    rsi_1h = 0
-    rsi_4h = 0
+    trade = TradeModel(is_closed=False, price=0, position_value=0,
+                       take_profit=0, stop_loss=0, type=TradeType('buy'), close=0, profit=0, fxopen_id='', opened_at='', closed_at='')
+    rsi_5min = RsiData(value=0, period=14)
+    rsi_30min = RsiData(value=0, period=14)
+    rsi_1h = RsiData(value=0, period=14)
+    rsi_4h = RsiData(value=0, period=7)
 
     candles_5min_list: list[Candle] = []
     candles_30min_list: list[Candle] = []
@@ -49,7 +57,7 @@ class BotManager:
             current_candle.start_timestamp / 1000, tz=timezone.utc)
         self.current_hour = current_candle_sart_date.hour
 
-    def check_strategy(self, current_candle: Candle) -> str:
+    def check_strategy(self, current_candle: Candle) -> Literal['BUY', 'SELL', 'IDLE']:
         position = self.get_position_with_tp_and_sl(current_candle)
         if (self.current_hour >= 7 and self.current_hour <= 19):
             if (
@@ -67,7 +75,7 @@ class BotManager:
                 # print(f'profit percentage: {position["profit_percentage"]}')
         return 'IDLE'
 
-    def check_for_custom_close(self, close_date: datetime) -> str | None:
+    def check_for_custom_close(self, close_date: datetime) -> Literal['close_profit', 'force_close'] | None:
         if (close_date.hour >= 20 and close_date.hour < 21):
             return 'close_profit'
         if (close_date.hour >= 21 or close_date.hour < 7):
@@ -75,12 +83,14 @@ class BotManager:
 
     # {position: 'BUY' | 'SELL', profit_percentage: float} | None
     def get_position_with_tp_and_sl(self, current_candle: Candle):
-        max_rsi = max(self.rsi_5min, self.rsi_30min, self.rsi_1h, self.rsi_4h)
-        min_rsi = min(self.rsi_5min, self.rsi_30min, self.rsi_1h, self.rsi_4h)
+        max_rsi = max(self.rsi_5min.value, self.rsi_30min.value,
+                      self.rsi_1h.value, self.rsi_4h.value)
+        min_rsi = min(self.rsi_5min.value, self.rsi_30min.value,
+                      self.rsi_1h.value, self.rsi_4h.value)
         previous_candles = self.candles_5min_list[-self.CANDLES_HISTORY_LENGTH:]
-        if ((self.rsi_5min <= 25 and self.rsi_30min <= 40 and self.rsi_1h <= 40 and self.rsi_1h < self.rsi_4h) or
-                (min_rsi == self.rsi_5min and self.rsi_5min <=
-                 30 and self.rsi_30min < self.rsi_4h and self.rsi_1h < self.rsi_4h)):  # BUY
+        if ((self.rsi_5min.value <= 25 and self.rsi_30min.value <= 40 and self.rsi_1h.value <= 40 and self.rsi_1h.value < self.rsi_4h.value) or
+                (min_rsi == self.rsi_5min.value and self.rsi_5min.value <=
+                 30 and self.rsi_30min.value < self.rsi_4h.value and self.rsi_1h.value < self.rsi_4h.value)):  # BUY
             higher_previous_price = max(
                 [candle.high for candle in previous_candles])
             max_take_profit_price = current_candle.close + \
@@ -101,9 +111,9 @@ class BotManager:
                 self.trade.stop_loss = current_candle.close - \
                     ((max_take_profit_price - current_candle.close) / 2)
                 return {'position': 'BUY', "profit_percentage": profit_percentage}
-        if ((self.rsi_5min >= 75 and self.rsi_30min >= 60 and self.rsi_1h >= 60 and self.rsi_1h > self.rsi_4h) or
-                ((max_rsi == self.rsi_5min and self.rsi_5min >=
-                  70 and self.rsi_30min > self.rsi_4h and self.rsi_1h > self.rsi_4h))
+        if ((self.rsi_5min.value >= 75 and self.rsi_30min.value >= 60 and self.rsi_1h.value >= 60 and self.rsi_1h.value > self.rsi_4h.value) or
+                ((max_rsi == self.rsi_5min.value and self.rsi_5min.value >=
+                  70 and self.rsi_30min.value > self.rsi_4h.value and self.rsi_1h.value > self.rsi_4h.value))
                 ):  # SELL
             lower_previous_price = min(
                 [candle.low for candle in previous_candles])
@@ -149,15 +159,16 @@ class BotManager:
         # print('Max drawdown:', self.max_drawdown)
 
     def set_all_rsi(self):
-        rsi_5min_local = get_rsi(self.candles_5min_list, 14)
-        rsi_30min_local = get_rsi(self.candles_30min_list, 14)
-        rsi_1h_local = get_rsi(self.candles_1h_list, 14)
-        rsi_4h_local = get_rsi(self.candles_4h_list, 7)
+        rsi_5min_local = get_rsi(self.candles_5min_list, self.rsi_5min.period)
+        rsi_30min_local = get_rsi(
+            self.candles_30min_list, self.rsi_30min.period)
+        rsi_1h_local = get_rsi(self.candles_1h_list, self.rsi_1h.period)
+        rsi_4h_local = get_rsi(self.candles_4h_list, self.rsi_4h.period)
         if (len(rsi_5min_local) > 0):
-            self.rsi_5min = rsi_5min_local[-1]
+            self.rsi_5min.value = rsi_5min_local[-1]
         if (len(rsi_30min_local) > 0):
-            self.rsi_30min = rsi_30min_local[-1]
+            self.rsi_30min.value = rsi_30min_local[-1]
         if (len(rsi_1h_local) > 0):
-            self.rsi_1h = rsi_1h_local[-1]
+            self.rsi_1h.value = rsi_1h_local[-1]
         if (len(rsi_4h_local) > 0):
-            self.rsi_4h = rsi_4h_local[-1]
+            self.rsi_4h.value = rsi_4h_local[-1]

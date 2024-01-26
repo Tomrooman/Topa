@@ -6,9 +6,10 @@ from candle import Candle
 from talipp.indicators import RSI
 
 
-def get_rsi(candles: list[Candle], period: int):
+def get_rsi(candles: list[Candle], period: int) -> list[float]:
     if (len(candles) < period + 1):
         return []
     candles_close = list(map(lambda candle: candle.close, candles))
-    candles_rsi = RSI(input_values=candles_close, period=period)
+    candles_rsi: list[float] = list(
+        RSI(input_values=candles_close, period=period))
     return candles_rsi

@@ -47,7 +47,7 @@ class BotDev(BotManager):
                     0, 0, f'Candle start date: {candle_5min_start_date}')
                 self.stdscr.addstr(1, 0, f'Balance: {self.balance}')
                 self.stdscr.addstr(
-                    2, 0, f'Trade available: {self.trade.is_available}')
+                    2, 0, f'Trade is closed: {self.trade.is_closed}')
                 self.stdscr.addstr(3, 0, f'Max balance: {self.max_balance}')
                 self.stdscr.addstr(4, 0,
                                    f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
@@ -70,7 +70,7 @@ class BotDev(BotManager):
             print('\n----- Backtest done -----\n')
             print(f'Candle start date: {self.last_candle_processed_date}')
             print(f'Balance: {self.balance}')
-            print(f'Trade available: {self.trade.is_available}')
+            print(f'Trade is closed: {self.trade.is_closed}')
             print(f'Max balance: {self.max_balance}')
             print(
                 f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
@@ -127,7 +127,7 @@ class BotDev(BotManager):
         current_candle, current_candle_start_date, current_candle_close_date = self.get_current_candle_with_start_and_close_date()
         self.set_current_hour_from_current_candle(current_candle)
         custom_close = self.check_for_custom_close(current_candle_close_date)
-        if (self.trade.is_available == False):
+        if (self.trade.is_closed == False):
             self.check_to_close_trade(
                 current_candle, current_candle_close_date, custom_close)
             return
@@ -140,7 +140,7 @@ class BotDev(BotManager):
         self.take_position(position, current_candle, current_candle_start_date)
 
     def take_position(self, side: str, current_candle: Candle, opened_at: datetime):
-        self.trade.is_available = False
+        self.trade.is_closed = False
         self.trade.price = current_candle.close
         self.trade.opened_at = opened_at.isoformat()
         self.trade.type = TradeType(side.lower())
@@ -158,7 +158,7 @@ class BotDev(BotManager):
             self.trade.profit = -loss_amount
             self.trade.closed_at = current_candle_close_date.isoformat()
             # Save into database
-            self.trade.is_available = True
+            self.trade.is_closed = True
             self.trade.insert_into_database()
             self.set_drawdown()
         # Profit
@@ -171,7 +171,7 @@ class BotDev(BotManager):
             self.trade.profit = profit_amount
             self.trade.closed_at = current_candle_close_date.isoformat()
             # Save into database
-            self.trade.is_available = True
+            self.trade.is_closed = True
             self.trade.insert_into_database()
             self.set_drawdown()
 
@@ -185,7 +185,7 @@ class BotDev(BotManager):
                 self.trade.close = current_candle.close
                 self.trade.closed_at = current_candle_close_date.isoformat()
                 # Save into database
-                self.trade.is_available = True
+                self.trade.is_closed = True
                 self.trade.insert_into_database()
                 self.set_drawdown()
         if (custom_close == 'force_close'):
@@ -201,7 +201,7 @@ class BotDev(BotManager):
             self.trade.close = current_candle.close
             self.trade.closed_at = current_candle_close_date.isoformat()
             # Save into database
-            self.trade.is_available = True
+            self.trade.is_closed = True
             self.trade.insert_into_database()
             self.set_drawdown()
 
