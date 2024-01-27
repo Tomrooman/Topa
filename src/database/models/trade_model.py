@@ -70,7 +70,11 @@ class TradeModel:
 
     @staticmethod
     def findLast():
-        return list(map(lambda trade: TradeModel(
+        trade = (MongoDB.database[TABLE_NAME].find().sort(
+            'opened_at', -1).limit(1))[0]
+        if (trade == None):
+            return None
+        return TradeModel(
             _id=trade['_id'],
             is_closed=trade['is_closed'],
             price=trade['price'],
@@ -83,7 +87,7 @@ class TradeModel:
             fxopen_id=trade['fxopen_id'],
             opened_at=trade['opened_at'],
             closed_at=trade['closed_at']
-        ), list(MongoDB.database[TABLE_NAME].find().sort('opened_at', -1).limit(1))))[0]
+        )
 
     @staticmethod
     def drop_table():
