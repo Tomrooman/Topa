@@ -1,4 +1,4 @@
-.env
+.env*
 lib
 lib64
 data

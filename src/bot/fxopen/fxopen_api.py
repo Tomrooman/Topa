@@ -6,7 +6,9 @@ import requests
 import json
 from typing import Literal
 from config.config_service import ConfigService
-from bot.fxopen.mappers.candles_mapper import map_to_candles_list
+from .mappers.map_to_candles_list import map_to_candles_list
+from .mappers.map_to_trade import map_to_trade
+from .mappers.map_to_account_info import map_to_account_info
 
 Periodicity = Literal[
     "D1",
@@ -27,7 +29,7 @@ class FxOpenApi():
     api_url = None
     configService = ConfigService()
 
-    def __init__(self, environment: str):
+    def __init__(self, environment: Literal['prod', 'demo']):
         if (environment == 'prod'):
             self.api_url = 'https://ttlivewebapi.fxopen.net:8443/api/v2'
         elif (environment == 'demo'):
@@ -43,18 +45,34 @@ class FxOpenApi():
         url = f'/quotehistory/EURUSD/{timeframe}/bars/ask?count={-(count + 1)}&timestamp={timestamp}'
         data = ''
         # Last candle in the response is open
-        response = self.api_request('GET', url, timestamp, data)
+        response = self.api_request(
+            method='GET', url=url, data=data, is_auth_required=True)
         # So remove it because we need closed candles
         del response['Bars'][-1]
         return map_to_candles_list(response)
 
-    def api_request(self, method: Literal['GET', 'POST', 'PUT', 'DELETE'], url: str, timestamp: int, data: str | None, is_auth_required=True):
+    def get_trade_by_id(self, trade_id: str):
+        url = f'/trade/{trade_id}'
+        data = ''
+        response = self.api_request(
+            method='GET', url=url, data=data, is_auth_required=True)
+        return map_to_trade(response)
+
+    def get_account_info(self):
+        url = f'/account'
+        data = ''
+        response = self.api_request(
+            method='GET', url=url, data=data, is_auth_required=True)
+        return map_to_account_info(response)
+
+    def api_request(self, method: Literal['GET', 'POST', 'PUT', 'DELETE'], url: str, data: str | None, is_auth_required=True):
         if (self.api_url == None):
             raise Exception('Api url is not set')
 
         call_url = self.api_url + url
 
         if (is_auth_required == True):
+            timestamp = round(datetime.now(tz=timezone.utc).timestamp() * 1000)
             signature = f'{timestamp}{self.configService.get_web_api_id()}{self.configService.get_web_api_key()}{method}{call_url}{data}'
             base64HmacSignature = base64.b64encode(hmac.new(
                 key=self.configService.get_web_api_secret().encode(),

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import math
 from typing import Literal
+from bson import ObjectId
 from database.models.trade_model import TradeModel, TradeType
 from candle import Candle
 from indicators import get_rsi
@@ -27,12 +28,12 @@ class BotManager:
     MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.003
     MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.003
 
-    balance = 2000
-    max_balance = balance
-    max_drawdown = 0
-    current_drawdown = 0
-    current_hour = 0
-    trade = TradeModel(is_closed=False, price=0, position_value=0,
+    balance: float = 2000
+    max_balance: float = balance
+    max_drawdown: float = 0
+    current_drawdown: float = 0
+    current_hour: int = 0
+    trade = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value=0,
                        take_profit=0, stop_loss=0, type=TradeType('buy'), close=0, profit=0, fxopen_id='', opened_at='', closed_at='')
     rsi_5min = RsiData(value=0, period=14)
     rsi_30min = RsiData(value=0, period=14)

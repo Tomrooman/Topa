@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+
+from bson import ObjectId
 from database.instance import MongoDB
 
 
@@ -11,7 +13,7 @@ class TradeType:
     value: str
 
     def __init__(self, type: str):
-        if type != self.BUY and type != self.SELL:
+        if type.lower() != self.BUY and type.lower() != self.SELL:
             raise Exception(
                 'Invalid trade type {type}, must be either {self.BUY} or {self.SELL}')
         self.value = type
@@ -19,6 +21,7 @@ class TradeType:
 
 @dataclass
 class TradeModel:
+    _id: ObjectId
     is_closed: bool
     price: float
     position_value: float
@@ -34,6 +37,7 @@ class TradeModel:
     @staticmethod
     def findTradesByDate(start_date: str, end_date: str):
         return list(map(lambda trade: TradeModel(
+            _id=trade['_id'],
             is_closed=trade['is_closed'],
             price=trade['price'],
             position_value=trade['position_value'],
@@ -50,6 +54,7 @@ class TradeModel:
     @staticmethod
     def findAll():
         return list(map(lambda trade: TradeModel(
+            _id=trade['_id'],
             is_closed=trade['is_closed'],
             price=trade['price'],
             position_value=trade['position_value'],
@@ -66,6 +71,7 @@ class TradeModel:
     @staticmethod
     def findLast():
         return list(map(lambda trade: TradeModel(
+            _id=trade['_id'],
             is_closed=trade['is_closed'],
             price=trade['price'],
             position_value=trade['position_value'],
@@ -85,6 +91,7 @@ class TradeModel:
 
     def to_json(self):
         return {
+            "_id": self._id,
             'is_closed': self.is_closed,
             'price': self.price,
             'position_value': self.position_value,
@@ -97,6 +104,9 @@ class TradeModel:
             'opened_at': self.opened_at,
             'closed_at': self.closed_at
         }
+
+    def save(self):
+        MongoDB.database[TABLE_NAME].save(self.to_json(), upsert=False)
 
     def insert_into_database(self):
         MongoDB.database[TABLE_NAME].insert_one(self.to_json())
