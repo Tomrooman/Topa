@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from bson import ObjectId
 from dateutil import relativedelta
 import pandas as pd
 import curses
@@ -159,7 +160,8 @@ class BotDev(BotManager):
             self.trade.closed_at = current_candle_close_date.isoformat()
             # Save into database
             self.trade.is_closed = True
-            self.trade.insert_into_database()
+            self.trade.save()
+            self._id = ObjectId()
             self.set_drawdown()
         # Profit
         if ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.take_profit) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.take_profit)):
@@ -172,7 +174,8 @@ class BotDev(BotManager):
             self.trade.closed_at = current_candle_close_date.isoformat()
             # Save into database
             self.trade.is_closed = True
-            self.trade.insert_into_database()
+            self.trade.save()
+            self._id = ObjectId()
             self.set_drawdown()
 
         if (custom_close == 'close_profit'):
@@ -186,7 +189,8 @@ class BotDev(BotManager):
                 self.trade.closed_at = current_candle_close_date.isoformat()
                 # Save into database
                 self.trade.is_closed = True
-                self.trade.insert_into_database()
+                self.trade.save()
+                self._id = ObjectId()
                 self.set_drawdown()
         if (custom_close == 'force_close'):
             diff_price_amount = abs(current_candle.close - self.trade.price)
@@ -202,7 +206,8 @@ class BotDev(BotManager):
             self.trade.closed_at = current_candle_close_date.isoformat()
             # Save into database
             self.trade.is_closed = True
-            self.trade.insert_into_database()
+            self.trade.save()
+            self._id = ObjectId()
             self.set_drawdown()
 
 

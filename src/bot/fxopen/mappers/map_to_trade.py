@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Literal
+
+from bson import ObjectId
 from database.models.trade_model import TradeModel, TradeType
 
 
@@ -63,6 +65,7 @@ def map_to_trade(trade: FxOpenGetTradeByIdResponse) -> TradeModel:
         closed_at = datetime.fromtimestamp(
             trade['Modified'] / 1000, tz=timezone.utc).isoformat()
     return TradeModel(
+        _id=ObjectId(),
         is_closed=is_closed, price=trade['Price'], position_value=trade['FilledAmount'],
         take_profit=trade['TakeProfit'], stop_loss=trade['StopLoss'], type=TradeType(trade['Side']), close=0, profit=trade['Profit'], fxopen_id=trade['Id'], opened_at=created, closed_at=closed_at
     )

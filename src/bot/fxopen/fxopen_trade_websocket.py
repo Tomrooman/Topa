@@ -27,18 +27,19 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
             websocket_url=self.websocket_trade_url, enableTrace=False)
 
     def on_message(self, ws, message):
-        print("received trade message:", message)
+        parsed_message = json.loads(message)
+        print("received trade message:", parsed_message)
 
-        if (message['Response'] == 'ExecutionReport'):
+        if (parsed_message['Response'] == 'ExecutionReport'):
             print('execution report')
-            if (message["Result"]["Event"] == 'Canceled'):
+            if (parsed_message["Result"]["Event"] == 'Canceled'):
                 print('trade canceled')
 
-        if (message['Response'] == 'TradeCreate'):
+        if (parsed_message['Response'] == 'TradeCreate'):
             print('trade create')
 
     def on_error(self, ws, error):
-        print(error)
+        print('trade error:', error)
 
     def on_close(self, ws, close_status_code, close_msg):
         print("### closed ###")

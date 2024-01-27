@@ -8,7 +8,7 @@ COLUMN_NAMES = {
 @dataclass
 class Candle:
     symbol: str
-    start_timestamp: int
+    start_timestamp: int  # secondes
     open: float
     high: float
     low: float

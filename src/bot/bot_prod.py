@@ -1,5 +1,8 @@
+from datetime import datetime, timezone
 import sys  # NOQA
-import os  # NOQA
+import os
+
+from bson import ObjectId  # NOQA
 parent_dir = os.path.dirname(os.path.realpath(__file__))  # NOQA
 sys.path.append(parent_dir + '/..')  # NOQA
 from typing import Literal
@@ -28,30 +31,24 @@ class BotProd(BotManager):
             raise Exception('Invalid environment')
 
         self.fxopenApi = FxOpenApi(self.environment)
-        self.start()
 
     def start(self):
         print(f'test {self.environment}')
         self.set_candles_list()
         self.set_all_rsi()
-
         trade = TradeModel.findLast()
 
-        if (trade is not None):
-            self.refresh_trade(trade)
+        # if (trade is not None):
+        # self.refresh_trade(trade)
 
-        current_candle, current_candle_start_date, current_candle_close_date = self.get_current_candle_with_start_and_close_date()
-        self.set_current_hour_from_current_candle(current_candle)
-        self.refresh_balance()
+        # current_candle, current_candle_start_date, current_candle_close_date = self.get_current_candle_with_start_and_close_date()
+        # self.set_current_hour_from_current_candle(current_candle)
+        # self.refresh_balance()
 
-        trade_websocket = FxOpenTradeWebsocket(self.environment, self)
-        feed_websocket = FxOpenFeedWebsocket(self.environment, self)
+        # trade_websocket = FxOpenTradeWebsocket(self.environment, self)
+        FxOpenFeedWebsocket(self.environment, self)
 
-        trade_websocket.trades_subscribe_message()
-        feed_websocket.candle_subscribe_message('M5')
-        # feed_websocket.candle_subscribe_message('M30')
-        # feed_websocket.candle_subscribe_message('H1')
-        # feed_websocket.candle_subscribe_message('H4')
+        # trade_websocket.trades_subscribe_message()
 
         # self.test_strategy()
 
@@ -75,34 +72,33 @@ class BotProd(BotManager):
     def handle_new_candle_from_websocket(self, periodicity: Periodicity, candle: Candle):
         if (periodicity == 'M5'):
             last_candle = self.candles_5min_list[-1]
-            if (last_candle.start_timestamp == candle.start_timestamp):
+            if (last_candle.start_timestamp != candle.start_timestamp):
                 self.candles_5min_list.append(candle)
                 if (len(self.candles_5min_list) > self.CANDLES_HISTORY_LENGTH):
                     del self.candles_5min_list[0]
+            self.set_all_rsi()
+            self.test_strategy()
 
         if (periodicity == 'M30'):
             last_candle = self.candles_30min_list[-1]
-            if (last_candle.start_timestamp == candle.start_timestamp):
+            if (last_candle.start_timestamp != candle.start_timestamp):
                 self.candles_30min_list.append(candle)
                 if (len(self.candles_30min_list) > self.CANDLES_HISTORY_LENGTH):
                     del self.candles_30min_list[0]
 
         if (periodicity == 'H1'):
             last_candle = self.candles_1h_list[-1]
-            if (last_candle.start_timestamp == candle.start_timestamp):
+            if (last_candle.start_timestamp != candle.start_timestamp):
                 self.candles_1h_list.append(candle)
                 if (len(self.candles_1h_list) > self.CANDLES_HISTORY_LENGTH):
                     del self.candles_1h_list[0]
 
         if (periodicity == 'H4'):
             last_candle = self.candles_4h_list[-1]
-            if (last_candle.start_timestamp == candle.start_timestamp):
+            if (last_candle.start_timestamp != candle.start_timestamp):
                 self.candles_4h_list.append(candle)
                 if (len(self.candles_4h_list) > self.CANDLES_HISTORY_LENGTH):
                     del self.candles_4h_list[0]
-
-        self.set_all_rsi()
-        self.test_strategy()
 
     def refresh_balance(self):
         account_info = self.fxopenApi.get_account_info()
@@ -112,20 +108,21 @@ class BotProd(BotManager):
         })
 
     def refresh_trade(self, trade: TradeModel):
-        trade = self.fxopenApi.get_trade_by_id(trade.fxopen_id)
-        self.trade.is_closed = trade.is_closed
-        self.trade.price = trade.price
-        self.trade.position_value = trade.position_value
-        self.trade.take_profit = trade.take_profit
-        self.trade.stop_loss = trade.stop_loss
-        self.trade.type = trade.type
-        self.trade.close = trade.close
-        self.trade.profit = trade.profit
-        self.trade.fxopen_id = trade.fxopen_id
-        self.trade.opened_at = trade.opened_at
-        self.trade.closed_at = trade.closed_at
+        self.trade._id = trade._id
+        fxopen_trade = self.fxopenApi.get_trade_by_id(trade.fxopen_id)
+        self.trade.is_closed = fxopen_trade.is_closed
+        self.trade.price = fxopen_trade.price
+        self.trade.position_value = fxopen_trade.position_value
+        self.trade.take_profit = fxopen_trade.take_profit
+        self.trade.stop_loss = fxopen_trade.stop_loss
+        self.trade.type = fxopen_trade.type
+        self.trade.close = fxopen_trade.close
+        self.trade.profit = fxopen_trade.profit
+        self.trade.fxopen_id = fxopen_trade.fxopen_id
+        self.trade.opened_at = fxopen_trade.opened_at
+        self.trade.closed_at = fxopen_trade.closed_at
         self.trade.save()
-        print('refresh trade : ', self.trade)
+        print('refreshed trade : ', self.trade)
 
     def set_candles_list(self):
         self.candles_5min_list = self.fxopenApi.get_candles(
@@ -141,12 +138,6 @@ class BotProd(BotManager):
         print(f'30min candle list length: {len(self.candles_30min_list)}')
         print(f'1h candle list length: {len(self.candles_1h_list)}')
         print(f'4h candle list length: {len(self.candles_4h_list)}')
-        print({
-            "rsi_5min": self.rsi_5min.value,
-            "rsi_30min": self.rsi_30min.value,
-            "rsi_1h": self.rsi_1h.value,
-            "rsi_4h": self.rsi_4h.value
-        })
 
 
 if __name__ == '__main__':

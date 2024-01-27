@@ -70,10 +70,14 @@ class TradeModel:
 
     @staticmethod
     def findLast():
-        trade = (MongoDB.database[TABLE_NAME].find().sort(
-            'opened_at', -1).limit(1))[0]
-        if (trade == None):
+        tradeList = list(MongoDB.database[TABLE_NAME].find().sort(
+            'opened_at', -1).limit(1))
+
+        if (len(tradeList) == 0):
             return None
+
+        trade = tradeList[0]
+
         return TradeModel(
             _id=trade['_id'],
             is_closed=trade['is_closed'],
@@ -110,7 +114,5 @@ class TradeModel:
         }
 
     def save(self):
-        MongoDB.database[TABLE_NAME].save(self.to_json(), upsert=False)
-
-    def insert_into_database(self):
-        MongoDB.database[TABLE_NAME].insert_one(self.to_json())
+        MongoDB.database[TABLE_NAME].update_one({'_id': self._id}, {
+            "$set": self.to_json()}, upsert=True)
