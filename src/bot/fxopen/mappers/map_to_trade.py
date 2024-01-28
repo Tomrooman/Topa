@@ -14,7 +14,8 @@ class FxOpenGetTradeByIdResponse:
     Type: Literal['Market']
     InitialType: Literal['Market']
     Side: Literal['Buy' 'Sell']
-    Status: str  # 'New' received
+    Status: Literal['New', 'Calculated', 'Filled', 'Canceled', 'Rejected', 'Expired',
+                    'PartiallyFilled', 'Activated', 'Executing', 'Invalid']  # 'New' received
     Symbol: str
     SymbolPrecision: int
     StopPrice: float
@@ -55,17 +56,21 @@ class FxOpenGetTradeByIdResponse:
 
 
 def map_to_trade(trade: FxOpenGetTradeByIdResponse) -> TradeModel:
-    created = datetime.fromtimestamp(
-        trade['Created'] / 1000, tz=timezone.utc).isoformat()
+    print('received trade by id : ', trade)
+    created_timestamp = trade['Created']
+    created_date = datetime.fromtimestamp(
+        created_timestamp / 1000, tz=timezone.utc).isoformat()
     profit = trade['Profit']
+    status = trade['Status']
     is_closed = False
+    is_confirmed = True
     closed_at = ''
-    if (profit > 0 or profit < 0):
+    if (profit > 0 or profit < 0 or status == 'Canceled' or status == 'Rejected' or status == 'Expired' or status == 'Invalid'):
         is_closed = True
         closed_at = datetime.fromtimestamp(
             trade['Modified'] / 1000, tz=timezone.utc).isoformat()
     return TradeModel(
-        _id=ObjectId(),
+        _id=ObjectId(), status=status, is_confirmed=is_confirmed,
         is_closed=is_closed, price=trade['Price'], position_value=trade['FilledAmount'],
-        take_profit=trade['TakeProfit'], stop_loss=trade['StopLoss'], type=TradeType(trade['Side']), close=0, profit=trade['Profit'], fxopen_id=trade['Id'], opened_at=created, closed_at=closed_at
+        take_profit=trade['TakeProfit'], stop_loss=trade['StopLoss'], type=TradeType(trade['Side']), close=0, profit=trade['Profit'], fxopen_id=trade['Id'], opened_at_timestamp=created_timestamp, opened_at=created_date, closed_at=closed_at
     )

@@ -2,9 +2,10 @@ import base64
 from datetime import datetime, timezone
 import hmac
 import hashlib
+from bson import ObjectId
 import requests
 import json
-from typing import Literal
+from typing import Any, Literal
 from config.config_service import ConfigService
 from .mappers.map_to_candles_list import map_to_candles_list
 from .mappers.map_to_trade import map_to_trade
@@ -58,6 +59,38 @@ class FxOpenApi():
             method='GET', url=url, data=data, is_auth_required=True)
         return map_to_trade(response)
 
+    # https://ttdemowebapi.fxopen.net:8443/api/doc/index#!/54132Trades32information32and32operations/Trade_Post
+    def create_trade(self, side: Literal['Buy', 'Sell'], amount: int, stop_loss: float, take_profit: float, comment: ObjectId):
+        url = '/trade'
+        data = json.dumps({
+            "Symbol": "EURUSD",
+            "Amount": amount,
+            "Side": side,
+            "Type": "Market",
+            "StopLoss": stop_loss,
+            "TakeProfit": take_profit,
+            "Comment": str(comment)
+        })
+        print('call api to create trade')
+        response = self.api_request(
+            method='POST', url=url, data=data, is_auth_required=True)
+        print('create trade api response', response)
+        try:
+            return response['Id']
+        except Exception as e:
+            print('create trade api error', e)
+            print('server message: ', response['Message'])
+            raise e
+
+    def close_trade(self, trade_id: str):
+        url = '/trade'
+        data = json.dumps({
+            "Type": "CloseBy",
+            "Id": trade_id,
+        })
+        self.api_request(
+            method='DELETE', url=url, data=data, is_auth_required=True)
+
     def get_account_info(self):
         url = f'/account'
         data = ''
@@ -86,9 +119,11 @@ class FxOpenApi():
             response = requests.request(method, call_url, headers={
                 "Content-type": "application/json", "Accept": "application/json", "Accept-encoding": "gzip, deflate"}, data=data)
 
-        try:
-            response_data = response.json()
-        except:
-            raise Exception(response.text)
+        response_data: Any = None
+        if (method != 'DELETE'):
+            try:
+                response_data = response.json()
+            except:
+                raise Exception(response.text)
 
         return response_data

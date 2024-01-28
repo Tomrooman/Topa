@@ -125,30 +125,31 @@ class BotDev(BotManager):
             self.open_file_5min.get_chunk().values[0])
 
     def test_strategy(self):
-        current_candle, current_candle_start_date, current_candle_close_date = self.get_current_candle_with_start_and_close_date()
-        self.set_current_hour_from_current_candle(current_candle)
-        custom_close = self.check_for_custom_close(current_candle_close_date)
+        custom_close = self.check_for_custom_close()
         if (self.trade.is_closed == False):
-            self.check_to_close_trade(
-                current_candle, current_candle_close_date, custom_close)
+            self.check_to_close_trade(custom_close)
             return
 
-        position = self.check_strategy(current_candle)
+        position = self.check_strategy()
 
-        if (position == 'IDLE'):
+        if (position == 'Idle'):
             return
 
-        self.take_position(position, current_candle, current_candle_start_date)
+        self.take_position(position)
 
-    def take_position(self, side: str, current_candle: Candle, opened_at: datetime):
+    def take_position(self, side: str):
+        current_candle = self.get_last_candle()
         self.trade.is_closed = False
         self.trade.price = current_candle.close
-        self.trade.opened_at = opened_at.isoformat()
+        self.trade.opened_at = datetime.fromtimestamp(
+            current_candle.start_timestamp / 1000, tz=timezone.utc).isoformat()
         self.trade.type = TradeType(side.lower())
         self.trade.position_value = self.get_position_value()
 
-    def check_to_close_trade(self, current_candle: Candle, current_candle_close_date: datetime, custom_close: str | None):
+    def check_to_close_trade(self, custom_close: str | None):
         fees_amount = self.trade.position_value * self.FEES * 2
+        current_candle = self.get_last_candle()
+        closed_date = self.get_close_date_from_candle(current_candle)
         # Loss
         if ((self.trade.type.value == 'sell' and current_candle.close >= self.trade.stop_loss) or (self.trade.type.value == 'buy' and current_candle.close <= self.trade.stop_loss)):
             diff_price_amount = abs(self.trade.stop_loss - self.trade.price)
@@ -157,28 +158,28 @@ class BotDev(BotManager):
             self.balance -= loss_amount + fees_amount
             self.trade.close = self.trade.stop_loss
             self.trade.profit = -loss_amount
-            self.trade.closed_at = current_candle_close_date.isoformat()
+            self.trade.closed_at = closed_date.isoformat()
             # Save into database
             self.trade.is_closed = True
             self.trade.save()
             self._id = ObjectId()
             self.set_drawdown()
         # Profit
-        if ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.take_profit) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.take_profit)):
+        elif ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.take_profit) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.take_profit)):
             diff_price_amount = abs(self.trade.take_profit - self.trade.price)
             profit_amount = self.trade.position_value * \
                 (diff_price_amount / self.trade.price)
             self.balance += profit_amount - fees_amount
             self.trade.close = self.trade.take_profit
             self.trade.profit = profit_amount
-            self.trade.closed_at = current_candle_close_date.isoformat()
+            self.trade.closed_at = closed_date.isoformat()
             # Save into database
             self.trade.is_closed = True
             self.trade.save()
             self._id = ObjectId()
             self.set_drawdown()
 
-        if (custom_close == 'close_profit'):
+        elif (custom_close == 'close_profit'):
             diff_price_amount = abs(current_candle.close - self.trade.price)
             trade_profit = self.trade.position_value * \
                 (diff_price_amount / self.trade.price)
@@ -186,13 +187,13 @@ class BotDev(BotManager):
                 self.balance += trade_profit - fees_amount
                 self.trade.profit = trade_profit
                 self.trade.close = current_candle.close
-                self.trade.closed_at = current_candle_close_date.isoformat()
+                self.trade.closed_at = closed_date.isoformat()
                 # Save into database
                 self.trade.is_closed = True
                 self.trade.save()
                 self._id = ObjectId()
                 self.set_drawdown()
-        if (custom_close == 'force_close'):
+        elif (custom_close == 'force_close'):
             diff_price_amount = abs(current_candle.close - self.trade.price)
             trade_profit = self.trade.position_value * \
                 (diff_price_amount / self.trade.price)
@@ -203,7 +204,7 @@ class BotDev(BotManager):
                 self.balance -= trade_profit + fees_amount
                 self.trade.profit = -trade_profit
             self.trade.close = current_candle.close
-            self.trade.closed_at = current_candle_close_date.isoformat()
+            self.trade.closed_at = closed_date.isoformat()
             # Save into database
             self.trade.is_closed = True
             self.trade.save()

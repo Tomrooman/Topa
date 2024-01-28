@@ -1,4 +1,5 @@
-from typing import Any, Literal
+from dataclasses import dataclass
+from typing import Callable, Literal
 import json
 import websocket
 from threading import Thread
@@ -8,13 +9,19 @@ from bot.candle import Candle
 from .fxopen_websocket_manager import FxOpenWebsocketManager
 
 
+@dataclass
+class BotServiceSharedFeedFunctions:
+    handle_new_candle_from_websocket: Callable[[Periodicity, Candle], None]
+    startup_data: Callable[[], None]
+
+
 class FxOpenFeedWebsocket(FxOpenWebsocketManager):
     id = 'Topa-feed'
     websocket_feed_url = ''
     configService = ConfigService()
-    botService: Any
+    botService: BotServiceSharedFeedFunctions
 
-    def __init__(self, environment: Literal['prod', 'demo'], botService: Any):
+    def __init__(self, environment: Literal['prod', 'demo'], botService: BotServiceSharedFeedFunctions):
         if (environment == 'prod'):
             self.websocket_feed_url = 'wss://ttlivewebapi.fxopen.net:3000'
             self.id += '-prod'
@@ -28,8 +35,8 @@ class FxOpenFeedWebsocket(FxOpenWebsocketManager):
         self.init_websocket(
             websocket_url=self.websocket_feed_url, enableTrace=False)
 
-    def convert_candle_update_to_candle(self, candle_update: dict, close: float):
-        return Candle(symbol=candle_update['SymbolAlias'], start_timestamp=candle_update['Time'], open=candle_update['Open'],
+    def convert_candle_update_to_candle(self, candle_update: dict, symbol: str, close: float):
+        return Candle(symbol=symbol, start_timestamp=candle_update['Time'], open=candle_update['Open'],
                       high=candle_update['High'], low=candle_update['Low'], close=close)
 
     def on_message(self, ws, message):
@@ -37,35 +44,37 @@ class FxOpenFeedWebsocket(FxOpenWebsocketManager):
         print("received feed message:", parsed_message)
         if (parsed_message['Response'] == 'FeedBarUpdate'):
             result = parsed_message['Result']
+            symbol = result['SymbolAlias']
             updates = result['Updates']
             candle_5min_update = next((
-                x for x in updates if x.Periodicity == "M5"), None)
+                x for x in updates if x["Periodicity"] == "M5"), None)
             candle_30min_update = next((
-                x for x in updates if x.Periodicity == "M30"), None)
+                x for x in updates if x["Periodicity"] == "M30"), None)
             candle_1h_update = next(
-                (x for x in updates if x.Periodicity == "H1"), None)
+                (x for x in updates if x["Periodicity"] == "H1"), None)
             candle_4h_update = next(
-                (x for x in updates if x.Periodicity == "H4"), None)
+                (x for x in updates if x["Periodicity"] == "H4"), None)
 
             if (candle_30min_update is not None):
                 self.botService.handle_new_candle_from_websocket(
-                    'M30', self.convert_candle_update_to_candle(candle_30min_update, result['AskClose']))
+                    'M30', self.convert_candle_update_to_candle(candle_30min_update, symbol, result['AskClose']))
             if (candle_1h_update is not None):
                 self.botService.handle_new_candle_from_websocket(
-                    'H1', self.convert_candle_update_to_candle(candle_1h_update, result['AskClose']))
+                    'H1', self.convert_candle_update_to_candle(candle_1h_update, symbol, result['AskClose']))
             if (candle_4h_update is not None):
                 self.botService.handle_new_candle_from_websocket(
-                    'H4', self.convert_candle_update_to_candle(candle_4h_update, result['AskClose']))
+                    'H4', self.convert_candle_update_to_candle(candle_4h_update, symbol, result['AskClose']))
             #  check 5min at last to trigger test strategy function with all candles updated
             if (candle_5min_update is not None):
                 self.botService.handle_new_candle_from_websocket(
-                    'M5', self.convert_candle_update_to_candle(candle_5min_update, result['AskClose']))
+                    'M5', self.convert_candle_update_to_candle(candle_5min_update, symbol, result['AskClose']))
 
     def on_error(self, ws, error):
         print('feed error:', error)
 
     def on_close(self, ws, close_status_code, close_msg):
         print("### closed ###")
+        # self.botService.startup_data()
 
     def on_open(self, ws):
         print("Opened feed connection")

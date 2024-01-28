@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Literal
 
 from bson import ObjectId
 from database.instance import MongoDB
@@ -24,6 +25,9 @@ class TradeModel:
     _id: ObjectId
     is_closed: bool
     price: float
+    status: Literal['New', 'Calculated', 'Filled', 'Canceled', 'Rejected',
+                    'Expired', 'PartiallyFilled', 'Activated', 'Executing', 'Invalid']
+    is_confirmed: bool
     position_value: float
     take_profit: float
     stop_loss: float
@@ -31,6 +35,7 @@ class TradeModel:
     close: float
     profit: float
     fxopen_id: str
+    opened_at_timestamp: int
     opened_at: str
     closed_at: str
 
@@ -40,6 +45,8 @@ class TradeModel:
             _id=trade['_id'],
             is_closed=trade['is_closed'],
             price=trade['price'],
+            status=trade['status'],
+            is_confirmed=trade['is_confirmed'],
             position_value=trade['position_value'],
             take_profit=trade['take_profit'],
             stop_loss=trade['stop_loss'],
@@ -47,6 +54,7 @@ class TradeModel:
             close=trade['close'],
             profit=trade['profit'],
             fxopen_id=trade['fxopen_id'],
+            opened_at_timestamp=trade['opened_at_timestamp'],
             opened_at=trade['opened_at'],
             closed_at=trade['closed_at']
         ), list(MongoDB.database[TABLE_NAME].find({'opened_at': {'$gte': start_date, '$lt': end_date}}))))
@@ -57,6 +65,8 @@ class TradeModel:
             _id=trade['_id'],
             is_closed=trade['is_closed'],
             price=trade['price'],
+            status=trade['status'],
+            is_confirmed=trade['is_confirmed'],
             position_value=trade['position_value'],
             take_profit=trade['take_profit'],
             stop_loss=trade['stop_loss'],
@@ -64,6 +74,7 @@ class TradeModel:
             close=trade['close'],
             profit=trade['profit'],
             fxopen_id=trade['fxopen_id'],
+            opened_at_timestamp=trade['opened_at_timestamp'],
             opened_at=trade['opened_at'],
             closed_at=trade['closed_at']
         ), list(MongoDB.database[TABLE_NAME].find())))
@@ -82,6 +93,8 @@ class TradeModel:
             _id=trade['_id'],
             is_closed=trade['is_closed'],
             price=trade['price'],
+            status=trade['status'],
+            is_confirmed=trade['is_confirmed'],
             position_value=trade['position_value'],
             take_profit=trade['take_profit'],
             stop_loss=trade['stop_loss'],
@@ -89,6 +102,7 @@ class TradeModel:
             close=trade['close'],
             profit=trade['profit'],
             fxopen_id=trade['fxopen_id'],
+            opened_at_timestamp=trade['opened_at_timestamp'],
             opened_at=trade['opened_at'],
             closed_at=trade['closed_at']
         )
@@ -102,6 +116,8 @@ class TradeModel:
             "_id": self._id,
             'is_closed': self.is_closed,
             'price': self.price,
+            'status': self.status,
+            'is_confirmed': self.is_confirmed,
             'position_value': self.position_value,
             'take_profit': self.take_profit,
             'stop_loss': self.stop_loss,
@@ -109,6 +125,7 @@ class TradeModel:
             'close': self.close,
             'profit': self.profit,
             'fxopen_id': self.fxopen_id,
+            'opened_at_timestamp': self.opened_at_timestamp,
             'opened_at': self.opened_at,
             'closed_at': self.closed_at
         }

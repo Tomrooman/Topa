@@ -1,9 +1,17 @@
-from typing import Any, Literal
+from dataclasses import dataclass
+from typing import Any, Callable, Literal
 import json
 import websocket
 from threading import Thread
 from config.config_service import ConfigService
 from .fxopen_websocket_manager import FxOpenWebsocketManager
+
+
+@dataclass
+class BotServiceSharedTradeFunctions:
+    handle_canceled_trade_from_websocket: Callable[[str], None]
+    handle_filled_trade_from_websocket: Callable[[], None]
+    handle_closed_trade: Callable[[], None]
 
 
 class FxOpenTradeWebsocket(FxOpenWebsocketManager):
@@ -13,7 +21,7 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
     ws: websocket.WebSocketApp  # type: ignore
     botService: Any
 
-    def __init__(self, environment: Literal['prod', 'demo'], botService: Any):
+    def __init__(self, environment: Literal['prod', 'demo'], botService: BotServiceSharedTradeFunctions):
         if (environment == 'prod'):
             self.websocket_trade_url = 'wss://ttlivewebapi.fxopen.net:3001'
             self.id += '-prod'
@@ -28,15 +36,30 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
 
     def on_message(self, ws, message):
         parsed_message = json.loads(message)
+        if (parsed_message['Response'] == 'TradeSessionInfo'):
+            return
+
         print("received trade message:", parsed_message)
 
         if (parsed_message['Response'] == 'ExecutionReport'):
             print('execution report')
             if (parsed_message["Result"]["Event"] == 'Canceled'):
                 print('trade canceled')
+                self.botService.handle_canceled_trade_from_websocket(
+                    parsed_message["Result"]["Trade"]["Id"])
+
+            # if (parsed_message["Result"]["Event"] == 'Filled'):
+            #     print('trade filled')
+            #     if (parsed_message["Result"]["Trade"]["Amount"] ==0): # remaining amount is 0
+            #         self.botService.handle_filled_trade_from_websocket()
+
+        if (parsed_message["Response"] == "TradeDelete"):
+            print('trade delete')
+            self.botService.handle_closed_trade()
 
         if (parsed_message['Response'] == 'TradeCreate'):
             print('trade create')
+            self.botService.handle_filled_trade_from_websocket()
 
     def on_error(self, ws, error):
         print('trade error:', error)
