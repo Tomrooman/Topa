@@ -58,12 +58,11 @@ class BotProd(BotManager):
         self.trade.stop_loss = current_candle.close - \
             ((higher_previous_price - current_candle.close) / 2)
         position_value = self.get_position_value()
+        self.trade._id = ObjectId()
         fxopen_trade_id = self.fxopenApi.create_trade(
             side='Buy', amount=position_value, stop_loss=self.trade.stop_loss, take_profit=self.trade.take_profit, comment=self.trade._id)
-
         current_timestamp = round(datetime.now(
             tz=timezone.utc).timestamp() * 1000)
-        self.trade._id = ObjectId()
         self.trade.position_value = position_value
         self.trade.fxopen_id = fxopen_trade_id
         self.trade.opened_at = datetime.fromtimestamp(
