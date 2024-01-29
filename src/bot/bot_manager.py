@@ -144,9 +144,6 @@ class BotManager:
             ((self.max_balance - self.balance) / self.max_balance) * 100, 4)
         if (self.current_drawdown > self.max_drawdown):
             self.max_drawdown = self.current_drawdown
-        # print('Max balance:', self.max_balance)
-        # print('Current drawdown:', current_drawdown)
-        # print('Max drawdown:', self.max_drawdown)
 
     def set_all_rsi(self):
         rsi_5min_local = get_rsi(self.candles_5min_list, self.rsi_5min.period)

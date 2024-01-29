@@ -10,6 +10,7 @@ from config.config_service import ConfigService
 from .mappers.map_to_candles_list import map_to_candles_list
 from .mappers.map_to_trade import map_to_trade
 from .mappers.map_to_account_info import map_to_account_info
+from logger.logger_service import LoggerService
 
 Periodicity = Literal[
     "D1",
@@ -29,6 +30,7 @@ Periodicity = Literal[
 class FxOpenApi():
     api_url = None
     configService = ConfigService()
+    loggerService = LoggerService()
 
     def __init__(self, environment: Literal['prod', 'demo']):
         if (environment == 'prod'):
@@ -75,14 +77,14 @@ class FxOpenApi():
             "TakeProfit": round(take_profit, 5),
             "Comment": str(comment)
         })
-        print('call api to create trade')
+        self.loggerService.log('call api to create trade')
         response = self.api_request(
             method='POST', url=url, data=data, is_auth_required=True)
-        print('create trade api response', response)
+        self.loggerService.log(f'create trade api response: {response}')
         try:
             return map_to_trade(response)
         except Exception as e:
-            print('server message: ', response['Message'])
+            self.loggerService.log(f"server message: {response['Message']}")
             raise e
 
     def close_trade(self, trade_id: str):

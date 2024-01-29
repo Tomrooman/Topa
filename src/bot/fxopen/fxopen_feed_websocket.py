@@ -7,6 +7,7 @@ from config.config_service import ConfigService
 from bot.fxopen.fxopen_api import Periodicity
 from bot.candle import Candle
 from .fxopen_websocket_manager import FxOpenWebsocketManager
+from logger.logger_service import LoggerService
 
 
 @dataclass
@@ -19,6 +20,7 @@ class FxOpenFeedWebsocket(FxOpenWebsocketManager):
     id = 'Topa-feed'
     websocket_feed_url = ''
     configService = ConfigService()
+    loggerService = LoggerService()
     botService: BotServiceSharedFeedFunctions
 
     def __init__(self, environment: Literal['prod', 'demo'], botService: BotServiceSharedFeedFunctions):
@@ -69,17 +71,18 @@ class FxOpenFeedWebsocket(FxOpenWebsocketManager):
             if (candle_5min_update is not None):
                 self.botService.handle_new_candle_from_websocket(
                     'M5', self.convert_candle_update_to_candle(candle_5min_update, symbol, result['AskClose']))
-        print("received feed message:", parsed_message)
+        self.loggerService.log(f"received feed message: {parsed_message}")
 
     def on_error(self, ws, error):
-        print('feed error:', error)
+        self.loggerService.log(f"feed error: {error}")
 
     def on_close(self, ws, close_status_code, close_msg):
-        print("### closed ###")
+        self.loggerService.log("### closed ###")
+        self.loggerService.log(f"Closed message: {close_msg}")
         # self.botService.startup_data()
 
     def on_open(self, ws):
-        print("Opened feed connection")
+        self.loggerService.log("Opened feed connection")
         self.send_auth_message(ws, self.id)
 
         self.candle_subscribe_message(ws, ['M5', 'M30', 'H1', 'H4'])

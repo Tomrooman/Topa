@@ -4,13 +4,15 @@ import hmac
 import hashlib
 import json
 from config.config_service import ConfigService
+from logger.logger_service import LoggerService
 
 
 class FxOpenWebsocketManager:
     configService = ConfigService()
+    loggerService = LoggerService()
 
     def send_auth_message(self, ws, websocket_id: str):
-        print('sending auth message')
+        self.loggerService.log('sending auth message')
 
         timestamp = round(datetime.now(tz=timezone.utc).timestamp() * 1000)
         signature = f'{timestamp}{self.configService.get_web_api_id()}{self.configService.get_web_api_key()}'

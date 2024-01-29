@@ -5,6 +5,7 @@ import websocket
 from threading import Thread
 from config.config_service import ConfigService
 from .fxopen_websocket_manager import FxOpenWebsocketManager
+from logger.logger_service import LoggerService
 
 
 @dataclass
@@ -17,6 +18,7 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
     id = 'Topa-trade'
     websocket_trade_url = ''
     configService = ConfigService()
+    loggerService = LoggerService()
     ws: websocket.WebSocketApp  # type: ignore
     botService: Any
 
@@ -38,27 +40,29 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
         if (parsed_message['Response'] == 'TradeSessionInfo'):
             return
 
-        print("received trade message:", parsed_message)
+        self.loggerService.log(f"received trade message: {parsed_message}")
 
         if (parsed_message['Response'] == 'ExecutionReport'):
             if (parsed_message["Result"]["Event"] == 'Canceled'):
-                print('trade canceled')
+                self.loggerService.log('trade canceled')
                 self.botService.handle_canceled_trade_from_websocket(
                     parsed_message["Result"]["Trade"]["Id"])
 
             if ("Profit" in parsed_message["Result"] and parsed_message["Result"]["Event"] == 'Filled'):
-                print('trade closed')
+                self.loggerService.log('trade closed')
                 self.botService.handle_closed_trade(
                     parsed_message["Result"]["Profit"]["Value"], parsed_message["Result"]["Trade"]["Price"], parsed_message["Result"]["Trade"]["Modified"])
 
     def on_error(self, ws, error):
-        print('trade error:', error)
+        self.loggerService.log(f'trade error: {error}')
 
     def on_close(self, ws, close_status_code, close_msg):
-        print("### closed ###")
+        self.loggerService.log("### closed ###")
+        self.loggerService.log(f"Closed message: {close_msg}")
+        # self.botService.startup_data()
 
     def on_open(self, ws):
-        print('opened trade connection')
+        self.loggerService.log('opened trade connection')
         self.send_auth_message(ws, self.id)
 
     def trades_subscribe_message(self):

@@ -13,11 +13,13 @@ from bot.bot_manager import BotManager
 from bot.fxopen.fxopen_api import FxOpenApi, Periodicity
 from database.models.trade_model import TradeModel
 from config.config_service import ConfigService
+from logger.logger_service import LoggerService
 import time
 
 
 class BotProd(BotManager):
     configService = ConfigService()
+    loggerService = LoggerService()
     fxopenApi: FxOpenApi
     environment: Literal['demo', 'prod'] = 'demo'
 
@@ -33,7 +35,7 @@ class BotProd(BotManager):
         self.fxopenApi = FxOpenApi(self.environment)
 
     def start(self):
-        print(f'start {self.environment}')
+        self.loggerService.log(f'start {self.environment}')
         self.startup_data()
 
         trade_websocket_shared_functions = BotServiceSharedTradeFunctions(
@@ -67,7 +69,7 @@ class BotProd(BotManager):
         # TEMP TO REMOVE TO TEST TRADE
 
     def startup_data(self):
-        print(f'startup data {self.environment}')
+        self.loggerService.log(f'startup data {self.environment}')
         self.set_candles_list()
         self.set_all_rsi()
         self.refresh_trade()
@@ -75,16 +77,16 @@ class BotProd(BotManager):
 
     def test_strategy(self):
         self.set_all_rsi()
-        print('process strategy')
+        self.loggerService.log('process strategy')
 
         if (self.trade.is_closed == False):
             custom_close = self.check_for_custom_close()
             if (custom_close == 'close_profit'):
                 self.check_close_in_profit()
-                print('close_profit')
+                self.loggerService.log('close_profit')
                 return
             if (custom_close == 'force_close'):
-                print('force_close')
+                self.loggerService.log('force_close')
                 self.fxopenApi.close_trade(self.trade.fxopen_id)
                 return
 
@@ -111,7 +113,7 @@ class BotProd(BotManager):
                 self.candles_5min_list.append(candle)
                 if (len(self.candles_5min_list) > self.CANDLES_HISTORY_LENGTH):
                     del self.candles_5min_list[0]
-            # self.test_strategy()
+            self.test_strategy()
 
         if (periodicity == 'M30'):
             last_candle = self.candles_30min_list[-1]
@@ -151,22 +153,22 @@ class BotProd(BotManager):
     def refresh_balance(self):
         account_info = self.fxopenApi.get_account_info()
         self.balance = account_info.balance
-        print({
-            "refreshed balance": self.balance,
-        })
+        self.loggerService.log(f"refreshed balance: {self.balance}")
 
     def refresh_trade(self):
         trade = TradeModel.findLast()
         if (trade is not None and trade.fxopen_id != ''):
             fxopen_trade = self.fxopenApi.get_trade_by_id(trade.fxopen_id)
-            print('fx open trade : ', fxopen_trade)
+            if (fxopen_trade is not None):
+                self.loggerService.log(
+                    f'fx open trade : {fxopen_trade.to_json()}')
             self.trade = fxopen_trade if fxopen_trade != None else trade
             self.trade.is_closed = True if fxopen_trade == None else fxopen_trade.is_closed
             self.trade.close = trade.close if fxopen_trade == None else fxopen_trade.close
             self.trade.profit = trade.profit if fxopen_trade == None else fxopen_trade.profit
             self.trade.closed_at = trade.closed_at if fxopen_trade == None else fxopen_trade.closed_at
             self.trade.save()
-            print('refreshed trade : ', self.trade)
+            self.loggerService.log(f'refreshed trade: {self.trade.to_json()}')
 
     def set_candles_list(self):
         self.candles_5min_list = self.fxopenApi.get_candles(
@@ -178,10 +180,14 @@ class BotProd(BotManager):
         self.candles_4h_list = self.fxopenApi.get_candles(
             'H4', self.rsi_4h.period + 1)
 
-        print(f'5min candle list length: {len(self.candles_5min_list)}')
-        print(f'30min candle list length: {len(self.candles_30min_list)}')
-        print(f'1h candle list length: {len(self.candles_1h_list)}')
-        print(f'4h candle list length: {len(self.candles_4h_list)}')
+        self.loggerService.log(
+            f'5min candle list length: {len(self.candles_5min_list)}')
+        self.loggerService.log(
+            f'30min candle list length: {len(self.candles_30min_list)}')
+        self.loggerService.log(
+            f'1h candle list length: {len(self.candles_1h_list)}')
+        self.loggerService.log(
+            f'4h candle list length: {len(self.candles_4h_list)}')
 
 
 if __name__ == '__main__':

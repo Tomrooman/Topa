@@ -63,7 +63,7 @@ class BotDev(BotManager):
                 else:
                     if (len(self.candles_5min_list) >= 14 and len(self.candles_30min_list) >= 14 and len(self.candles_1h_list) >= 14 and len(self.candles_4h_list) >= 7):
                         self.set_all_rsi()
-                    if (self.rsi_5min != 0 and self.rsi_30min != 0 and self.rsi_1h != 0 and self.rsi_4h != 0):
+                    if (self.rsi_5min.value != 0 and self.rsi_30min.value != 0 and self.rsi_1h.value != 0 and self.rsi_4h.value != 0):
                         self.test_strategy()
                     self.stdscr.addstr(6, 0, '----------')
                     self.stdscr.refresh()
@@ -99,10 +99,10 @@ class BotDev(BotManager):
                 self.candles_30min_list = []
                 self.candles_1h_list = []
                 self.candles_4h_list = []
-                self.rsi_5min = 0
-                self.rsi_30min = 0
-                self.rsi_1h = 0
-                self.rsi_4h = 0
+                self.rsi_5min.value = 0
+                self.rsi_30min.value = 0
+                self.rsi_1h.value = 0
+                self.rsi_4h.value = 0
             if (current_candle_5min_start_date.minute == 0 or current_candle_5min_start_date.minute == 30):
                 self.candles_30min_list.append(create_from_csv_line(
                     self.open_file_30min.get_chunk().values[0]))
@@ -162,7 +162,7 @@ class BotDev(BotManager):
             # Save into database
             self.trade.is_closed = True
             self.trade.save()
-            self._id = ObjectId()
+            self.trade._id = ObjectId()
             self.set_drawdown()
         # Profit
         elif ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.take_profit) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.take_profit)):
@@ -176,7 +176,7 @@ class BotDev(BotManager):
             # Save into database
             self.trade.is_closed = True
             self.trade.save()
-            self._id = ObjectId()
+            self.trade._id = ObjectId()
             self.set_drawdown()
 
         elif (custom_close == 'close_profit'):
@@ -191,7 +191,7 @@ class BotDev(BotManager):
                 # Save into database
                 self.trade.is_closed = True
                 self.trade.save()
-                self._id = ObjectId()
+                self.trade._id = ObjectId()
                 self.set_drawdown()
         elif (custom_close == 'force_close'):
             diff_price_amount = abs(current_candle.close - self.trade.price)
@@ -208,7 +208,7 @@ class BotDev(BotManager):
             # Save into database
             self.trade.is_closed = True
             self.trade.save()
-            self._id = ObjectId()
+            self.trade._id = ObjectId()
             self.set_drawdown()
 
 
