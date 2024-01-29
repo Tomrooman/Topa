@@ -41,9 +41,10 @@ class FxOpenFeedWebsocket(FxOpenWebsocketManager):
 
     def on_message(self, ws, message):
         parsed_message = json.loads(message)
-        print("received feed message:", parsed_message)
         if (parsed_message['Response'] == 'FeedBarUpdate'):
             result = parsed_message['Result']
+            if (result["ClosedBarUpdate"] == False):
+                return
             symbol = result['SymbolAlias']
             updates = result['Updates']
             candle_5min_update = next((
@@ -68,6 +69,7 @@ class FxOpenFeedWebsocket(FxOpenWebsocketManager):
             if (candle_5min_update is not None):
                 self.botService.handle_new_candle_from_websocket(
                     'M5', self.convert_candle_update_to_candle(candle_5min_update, symbol, result['AskClose']))
+        print("received feed message:", parsed_message)
 
     def on_error(self, ws, error):
         print('feed error:', error)

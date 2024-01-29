@@ -32,7 +32,7 @@ class BotManager:
     max_balance: float = balance
     max_drawdown: float = 0
     current_drawdown: float = 0
-    trade = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value=0, status='New', is_confirmed=False,
+    trade = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value=0, status='New',
                        take_profit=0, stop_loss=0, type=TradeType('buy'), close=0, profit=0, fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='')
     rsi_5min = RsiData(value=0, period=14)
     rsi_30min = RsiData(value=0, period=14)

@@ -57,6 +57,10 @@ class FxOpenApi():
         data = ''
         response = self.api_request(
             method='GET', url=url, data=data, is_auth_required=True)
+
+        if ("Message" in response):  # Not found, probably closed
+            return None
+
         return map_to_trade(response)
 
     # https://ttdemowebapi.fxopen.net:8443/api/doc/index#!/54132Trades32information32and32operations/Trade_Post
@@ -67,8 +71,8 @@ class FxOpenApi():
             "Amount": amount,
             "Side": side,
             "Type": "Market",
-            "StopLoss": stop_loss,
-            "TakeProfit": take_profit,
+            "StopLoss": round(stop_loss, 5),
+            "TakeProfit": round(take_profit, 5),
             "Comment": str(comment)
         })
         print('call api to create trade')
@@ -76,9 +80,8 @@ class FxOpenApi():
             method='POST', url=url, data=data, is_auth_required=True)
         print('create trade api response', response)
         try:
-            return response['Id']
+            return map_to_trade(response)
         except Exception as e:
-            print('create trade api error', e)
             print('server message: ', response['Message'])
             raise e
 

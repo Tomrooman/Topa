@@ -13,6 +13,7 @@ from bot.bot_manager import BotManager
 from bot.fxopen.fxopen_api import FxOpenApi, Periodicity
 from database.models.trade_model import TradeModel
 from config.config_service import ConfigService
+import time
 
 
 class BotProd(BotManager):
@@ -38,7 +39,6 @@ class BotProd(BotManager):
         trade_websocket_shared_functions = BotServiceSharedTradeFunctions(
             handle_canceled_trade_from_websocket=self.handle_canceled_trade_from_websocket,
             handle_closed_trade=self.handle_closed_trade,
-            handle_filled_trade_from_websocket=self.handle_filled_trade_from_websocket
         )
         FxOpenTradeWebsocket(
             self.environment, trade_websocket_shared_functions)
@@ -48,30 +48,22 @@ class BotProd(BotManager):
             startup_data=self.startup_data
         )
         FxOpenFeedWebsocket(self.environment, feed_websocket_shared_functions)
-
+        # time.sleep(5)
         # TEMP TO REMOVE TO TEST TRADE
-        current_candle = self.get_last_candle()
-        previous_candles = self.candles_5min_list[-self.CANDLES_HISTORY_LENGTH:]
-        higher_previous_price = max(
-            [candle.high for candle in previous_candles])
-        self.trade.take_profit = higher_previous_price
-        self.trade.stop_loss = current_candle.close - \
-            ((higher_previous_price - current_candle.close) / 2)
-        position_value = self.get_position_value()
-        self.trade._id = ObjectId()
-        fxopen_trade_id = self.fxopenApi.create_trade(
-            side='Buy', amount=position_value, stop_loss=self.trade.stop_loss, take_profit=self.trade.take_profit, comment=self.trade._id)
-        current_timestamp = round(datetime.now(
-            tz=timezone.utc).timestamp() * 1000)
-        self.trade.position_value = position_value
-        self.trade.fxopen_id = fxopen_trade_id
-        self.trade.opened_at = datetime.fromtimestamp(
-            current_timestamp / 1000, tz=timezone.utc).isoformat()
-        self.trade.opened_at_timestamp = current_timestamp
-        self.trade.closed_at = ''
-        self.trade.is_closed = False
-        self.trade.is_confirmed = False
-        self.trade.save()
+        # current_candle = self.get_last_candle()
+        # previous_candles = self.candles_5min_list[-self.CANDLES_HISTORY_LENGTH:]
+        # higher_previous_price = max(
+        #     [candle.high for candle in previous_candles])
+        # self.trade.take_profit = higher_previous_price
+        # self.trade.stop_loss = current_candle.close - \
+        #     ((higher_previous_price - current_candle.close) / 2)
+        # position_value = self.get_position_value()
+
+        # new_trade_id = ObjectId()
+        # fxopen_trade = self.fxopenApi.create_trade(
+        #     side='Buy', amount=position_value, stop_loss=self.trade.stop_loss, take_profit=self.trade.take_profit, comment=new_trade_id)
+        # self.trade = fxopen_trade
+        # self.trade.save()
         # TEMP TO REMOVE TO TEST TRADE
 
     def startup_data(self):
@@ -85,50 +77,26 @@ class BotProd(BotManager):
         self.set_all_rsi()
         print('process strategy')
 
-        if (self.trade.is_closed == False and self.trade.is_confirmed == False):
-            trade_start_date = datetime.fromtimestamp(
-                self.trade.opened_at_timestamp / 1000, tz=timezone.utc)
-            now_date = datetime.now(tz=timezone.utc)
-            difference = relativedelta.relativedelta(
-                trade_start_date, now_date)
-
-            if (difference.minutes < 1):
-                return
-
-            self.refresh_trade()
-
-        if (self.trade.is_closed == False and self.trade.is_confirmed == True):
+        if (self.trade.is_closed == False):
             custom_close = self.check_for_custom_close()
             if (custom_close == 'close_profit'):
                 self.check_close_in_profit()
-                self.handle_closed_trade()
                 print('close_profit')
+                return
             if (custom_close == 'force_close'):
                 print('force_close')
                 self.fxopenApi.close_trade(self.trade.fxopen_id)
-                self.handle_closed_trade()
-            return
+                return
 
-        if (self.trade.is_closed == False and self.trade.is_confirmed == True):
             position = self.check_strategy()
-
             if (position == 'Idle'):
                 return
 
             position_value = self.get_position_value()
-            self.trade._id = ObjectId()
-            fxopen_trade_id = self.fxopenApi.create_trade(
-                side=position, amount=position_value, stop_loss=self.trade.stop_loss, take_profit=self.trade.take_profit, comment=self.trade._id)
-            current_timestamp = round(datetime.now(
-                tz=timezone.utc).timestamp() * 1000)
-            self.trade.position_value = position_value
-            self.trade.fxopen_id = fxopen_trade_id
-            self.trade.opened_at = datetime.fromtimestamp(
-                current_timestamp / 1000, tz=timezone.utc).isoformat()
-            self.trade.opened_at_timestamp = current_timestamp
-            self.trade.closed_at = ''
-            self.trade.is_closed = False
-            self.trade.is_confirmed = False
+            new_trade_id = ObjectId()
+            fxopen_trade = self.fxopenApi.create_trade(
+                side='Buy', amount=position_value, stop_loss=self.trade.stop_loss, take_profit=self.trade.take_profit, comment=new_trade_id)
+            self.trade = fxopen_trade
             self.trade.save()
 
     def check_close_in_profit(self):
@@ -167,20 +135,17 @@ class BotProd(BotManager):
                     del self.candles_4h_list[0]
 
     def handle_canceled_trade_from_websocket(self, fxopen_id: str):
-        self.fxopenApi.close_trade(fxopen_id)
         self.trade.is_closed = True
-        self.trade.is_confirmed = True
         self.trade.status = 'Canceled'
         self.trade.save()
 
-    def handle_filled_trade_from_websocket(self):
-        self.trade.is_closed = False
-        self.trade.is_confirmed = True
-        self.trade.status = 'Filled'
+    def handle_closed_trade(self, trade_profit: float, close_price: float, closed_at_timestamp: int):
+        self.trade.is_closed = True
+        self.trade.closed_at = datetime.fromtimestamp(
+            closed_at_timestamp / 1000, tz=timezone.utc).isoformat()
+        self.trade.profit = trade_profit
+        self.trade.close = close_price
         self.trade.save()
-
-    def handle_closed_trade(self):
-        self.refresh_trade()
         self.refresh_balance()
 
     def refresh_balance(self):
@@ -193,21 +158,13 @@ class BotProd(BotManager):
     def refresh_trade(self):
         trade = TradeModel.findLast()
         if (trade is not None and trade.fxopen_id != ''):
-            self.trade._id = trade._id
             fxopen_trade = self.fxopenApi.get_trade_by_id(trade.fxopen_id)
-            self.trade.is_closed = fxopen_trade.is_closed
-            self.trade.price = fxopen_trade.price
-            self.trade.position_value = fxopen_trade.position_value
-            self.trade.take_profit = fxopen_trade.take_profit
-            self.trade.stop_loss = fxopen_trade.stop_loss
-            self.trade.status = fxopen_trade.status
-            self.trade.is_confirmed = fxopen_trade.is_confirmed
-            self.trade.type = fxopen_trade.type
-            self.trade.close = fxopen_trade.close
-            self.trade.profit = fxopen_trade.profit
-            self.trade.fxopen_id = fxopen_trade.fxopen_id
-            self.trade.opened_at = fxopen_trade.opened_at
-            self.trade.closed_at = fxopen_trade.closed_at
+            print('fx open trade : ', fxopen_trade)
+            self.trade = fxopen_trade if fxopen_trade != None else trade
+            self.trade.is_closed = True if fxopen_trade == None else fxopen_trade.is_closed
+            self.trade.close = trade.close if fxopen_trade == None else fxopen_trade.close
+            self.trade.profit = trade.profit if fxopen_trade == None else fxopen_trade.profit
+            self.trade.closed_at = trade.closed_at if fxopen_trade == None else fxopen_trade.closed_at
             self.trade.save()
             print('refreshed trade : ', self.trade)
 

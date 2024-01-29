@@ -60,17 +60,16 @@ def map_to_trade(trade: FxOpenGetTradeByIdResponse) -> TradeModel:
     created_timestamp = trade['Created']
     created_date = datetime.fromtimestamp(
         created_timestamp / 1000, tz=timezone.utc).isoformat()
-    profit = trade['Profit']
+    remaining_amount = trade['RemainingAmount']
     status = trade['Status']
     is_closed = False
-    is_confirmed = True
     closed_at = ''
-    if (profit > 0 or profit < 0 or status == 'Canceled' or status == 'Rejected' or status == 'Expired' or status == 'Invalid'):
+    if (remaining_amount == 0 or status == 'Canceled' or status == 'Rejected' or status == 'Expired' or status == 'Invalid'):
         is_closed = True
         closed_at = datetime.fromtimestamp(
             trade['Modified'] / 1000, tz=timezone.utc).isoformat()
     return TradeModel(
-        _id=ObjectId(), status=status, is_confirmed=is_confirmed,
-        is_closed=is_closed, price=trade['Price'], position_value=trade['FilledAmount'],
+        _id=trade["Comment"], status=status,
+        is_closed=is_closed, price=trade['Price'], position_value=trade['InitialAmount'],
         take_profit=trade['TakeProfit'], stop_loss=trade['StopLoss'], type=TradeType(trade['Side']), close=0, profit=trade['Profit'], fxopen_id=trade['Id'], opened_at_timestamp=created_timestamp, opened_at=created_date, closed_at=closed_at
     )

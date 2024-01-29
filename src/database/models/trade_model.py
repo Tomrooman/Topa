@@ -27,7 +27,6 @@ class TradeModel:
     price: float
     status: Literal['New', 'Calculated', 'Filled', 'Canceled', 'Rejected',
                     'Expired', 'PartiallyFilled', 'Activated', 'Executing', 'Invalid']
-    is_confirmed: bool
     position_value: float
     take_profit: float
     stop_loss: float
@@ -46,7 +45,6 @@ class TradeModel:
             is_closed=trade['is_closed'],
             price=trade['price'],
             status=trade['status'],
-            is_confirmed=trade['is_confirmed'],
             position_value=trade['position_value'],
             take_profit=trade['take_profit'],
             stop_loss=trade['stop_loss'],
@@ -66,7 +64,6 @@ class TradeModel:
             is_closed=trade['is_closed'],
             price=trade['price'],
             status=trade['status'],
-            is_confirmed=trade['is_confirmed'],
             position_value=trade['position_value'],
             take_profit=trade['take_profit'],
             stop_loss=trade['stop_loss'],
@@ -94,7 +91,6 @@ class TradeModel:
             is_closed=trade['is_closed'],
             price=trade['price'],
             status=trade['status'],
-            is_confirmed=trade['is_confirmed'],
             position_value=trade['position_value'],
             take_profit=trade['take_profit'],
             stop_loss=trade['stop_loss'],
@@ -117,7 +113,6 @@ class TradeModel:
             'is_closed': self.is_closed,
             'price': self.price,
             'status': self.status,
-            'is_confirmed': self.is_confirmed,
             'position_value': self.position_value,
             'take_profit': self.take_profit,
             'stop_loss': self.stop_loss,

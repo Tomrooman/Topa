@@ -10,8 +10,7 @@ from .fxopen_websocket_manager import FxOpenWebsocketManager
 @dataclass
 class BotServiceSharedTradeFunctions:
     handle_canceled_trade_from_websocket: Callable[[str], None]
-    handle_filled_trade_from_websocket: Callable[[], None]
-    handle_closed_trade: Callable[[], None]
+    handle_closed_trade: Callable[[float, float, int], None]
 
 
 class FxOpenTradeWebsocket(FxOpenWebsocketManager):
@@ -42,24 +41,15 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
         print("received trade message:", parsed_message)
 
         if (parsed_message['Response'] == 'ExecutionReport'):
-            print('execution report')
             if (parsed_message["Result"]["Event"] == 'Canceled'):
                 print('trade canceled')
                 self.botService.handle_canceled_trade_from_websocket(
                     parsed_message["Result"]["Trade"]["Id"])
 
-            # if (parsed_message["Result"]["Event"] == 'Filled'):
-            #     print('trade filled')
-            #     if (parsed_message["Result"]["Trade"]["Amount"] ==0): # remaining amount is 0
-            #         self.botService.handle_filled_trade_from_websocket()
-
-        if (parsed_message["Response"] == "TradeDelete"):
-            print('trade delete')
-            self.botService.handle_closed_trade()
-
-        if (parsed_message['Response'] == 'TradeCreate'):
-            print('trade create')
-            self.botService.handle_filled_trade_from_websocket()
+            if ("Profit" in parsed_message["Result"] and parsed_message["Result"]["Event"] == 'Filled'):
+                print('trade closed')
+                self.botService.handle_closed_trade(
+                    parsed_message["Result"]["Profit"]["Value"], parsed_message["Result"]["Trade"]["Price"], parsed_message["Result"]["Trade"]["Modified"])
 
     def on_error(self, ws, error):
         print('trade error:', error)
