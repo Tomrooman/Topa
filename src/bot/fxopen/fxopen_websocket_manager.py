@@ -12,7 +12,7 @@ class FxOpenWebsocketManager:
     loggerService = LoggerService()
 
     def send_auth_message(self, ws, websocket_id: str):
-        self.loggerService.log('sending auth message')
+        self.loggerService.log(f'sending auth message: {websocket_id}')
 
         timestamp = round(datetime.now(tz=timezone.utc).timestamp() * 1000)
         signature = f'{timestamp}{self.configService.get_web_api_id()}{self.configService.get_web_api_key()}'

@@ -41,6 +41,7 @@ class BotProd(BotManager):
         trade_websocket_shared_functions = BotServiceSharedTradeFunctions(
             handle_canceled_trade_from_websocket=self.handle_canceled_trade_from_websocket,
             handle_closed_trade=self.handle_closed_trade,
+            startup_data=self.startup_data
         )
         FxOpenTradeWebsocket(
             self.environment, trade_websocket_shared_functions)
@@ -74,6 +75,7 @@ class BotProd(BotManager):
         self.set_all_rsi()
         self.refresh_trade()
         self.refresh_balance()
+        self.test_strategy()
 
     def test_strategy(self):
         self.set_all_rsi()
@@ -90,16 +92,16 @@ class BotProd(BotManager):
                 self.fxopenApi.close_trade(self.trade.fxopen_id)
                 return
 
-            position = self.check_strategy()
-            if (position == 'Idle'):
-                return
+        position = self.check_strategy()
+        if (position == 'Idle'):
+            return
 
-            position_value = self.get_position_value()
-            new_trade_id = ObjectId()
-            fxopen_trade = self.fxopenApi.create_trade(
-                side='Buy', amount=position_value, stop_loss=self.trade.stop_loss, take_profit=self.trade.take_profit, comment=new_trade_id)
-            self.trade = fxopen_trade
-            self.trade.save()
+        position_value = self.get_position_value()
+        new_trade_id = ObjectId()
+        fxopen_trade = self.fxopenApi.create_trade(
+            side='Buy', amount=position_value, stop_loss=self.trade.stop_loss, take_profit=self.trade.take_profit, comment=new_trade_id)
+        self.trade = fxopen_trade
+        self.trade.save()
 
     def check_close_in_profit(self):
         last_candle = self.get_last_candle()

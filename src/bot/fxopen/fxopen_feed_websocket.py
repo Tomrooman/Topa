@@ -79,12 +79,13 @@ class FxOpenFeedWebsocket(FxOpenWebsocketManager):
     def on_close(self, ws, close_status_code, close_msg):
         self.loggerService.log("### closed ###")
         self.loggerService.log(f"Closed message: {close_msg}")
-        # self.botService.startup_data()
+        self.botService.startup_data()
+        self.init_websocket(
+            websocket_url=self.websocket_feed_url, enableTrace=False)
 
     def on_open(self, ws):
         self.loggerService.log("Opened feed connection")
         self.send_auth_message(ws, self.id)
-
         self.candle_subscribe_message(ws, ['M5', 'M30', 'H1', 'H4'])
 
     def candle_subscribe_message(self, ws, periodicityList: list[Periodicity]):

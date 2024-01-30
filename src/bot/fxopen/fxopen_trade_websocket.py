@@ -12,6 +12,7 @@ from logger.logger_service import LoggerService
 class BotServiceSharedTradeFunctions:
     handle_canceled_trade_from_websocket: Callable[[str], None]
     handle_closed_trade: Callable[[float, float, int], None]
+    startup_data: Callable[[], None]
 
 
 class FxOpenTradeWebsocket(FxOpenWebsocketManager):
@@ -19,8 +20,7 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
     websocket_trade_url = ''
     configService = ConfigService()
     loggerService = LoggerService()
-    ws: websocket.WebSocketApp  # type: ignore
-    botService: Any
+    botService: BotServiceSharedTradeFunctions
 
     def __init__(self, environment: Literal['prod', 'demo'], botService: BotServiceSharedTradeFunctions):
         if (environment == 'prod'):
@@ -59,23 +59,19 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
     def on_close(self, ws, close_status_code, close_msg):
         self.loggerService.log("### closed ###")
         self.loggerService.log(f"Closed message: {close_msg}")
-        # self.botService.startup_data()
+        self.botService.startup_data()
+        self.init_websocket(
+            websocket_url=self.websocket_trade_url, enableTrace=False)
 
     def on_open(self, ws):
         self.loggerService.log('opened trade connection')
         self.send_auth_message(ws, self.id)
 
-    def trades_subscribe_message(self):
-        self.ws.send(json.dumps({
-            "Id": self.id,
-            "Request": "Trades",
-        }))
-
     def init_websocket(self, websocket_url: str, enableTrace: bool) -> None:
         websocket.enableTrace(enableTrace)
-        self.ws = websocket.WebSocketApp(websocket_url,  # type: ignore
-                                         on_open=self.on_open,
-                                         on_message=self.on_message,
-                                         on_error=self.on_error,
-                                         on_close=self.on_close)
-        Thread(target=self.ws.run_forever).start()
+        ws = websocket.WebSocketApp(websocket_url,  # type: ignore
+                                    on_open=self.on_open,
+                                    on_message=self.on_message,
+                                    on_error=self.on_error,
+                                    on_close=self.on_close)
+        Thread(target=ws.run_forever).start()
