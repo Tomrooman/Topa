@@ -14,7 +14,6 @@ from bot.fxopen.fxopen_api import FxOpenApi, Periodicity
 from database.models.trade_model import TradeModel
 from config.config_service import ConfigService
 from logger.logger_service import LoggerService
-import time
 
 
 class BotProd(BotManager):
@@ -51,23 +50,6 @@ class BotProd(BotManager):
             startup_data=self.startup_data
         )
         FxOpenFeedWebsocket(self.environment, feed_websocket_shared_functions)
-        # time.sleep(5)
-        # TEMP TO REMOVE TO TEST TRADE
-        # current_candle = self.get_last_candle()
-        # previous_candles = self.candles_5min_list[-self.CANDLES_HISTORY_LENGTH:]
-        # higher_previous_price = max(
-        #     [candle.high for candle in previous_candles])
-        # self.trade.take_profit = higher_previous_price
-        # self.trade.stop_loss = current_candle.close - \
-        #     ((higher_previous_price - current_candle.close) / 2)
-        # position_value = self.get_position_value()
-
-        # new_trade_id = ObjectId()
-        # fxopen_trade = self.fxopenApi.create_trade(
-        #     side='Buy', amount=position_value, stop_loss=self.trade.stop_loss, take_profit=self.trade.take_profit, comment=new_trade_id)
-        # self.trade = fxopen_trade
-        # self.trade.save()
-        # TEMP TO REMOVE TO TEST TRADE
 
     def startup_data(self):
         self.loggerService.log(f'startup data {self.environment}')
@@ -99,7 +81,7 @@ class BotProd(BotManager):
         position_value = self.get_position_value()
         new_trade_id = ObjectId()
         fxopen_trade = self.fxopenApi.create_trade(
-            side='Buy', amount=position_value, stop_loss=self.trade.stop_loss, take_profit=self.trade.take_profit, comment=new_trade_id)
+            side=position, amount=position_value, stop_loss=self.trade.stop_loss, take_profit=self.trade.take_profit, comment=new_trade_id)
         self.trade = fxopen_trade
         self.trade.save()
 

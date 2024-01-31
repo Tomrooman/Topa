@@ -4,3 +4,4 @@ lib64
 data
 __pycache__
 logs
+requirements.txt
