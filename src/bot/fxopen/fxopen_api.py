@@ -90,7 +90,7 @@ class FxOpenApi():
     def close_trade(self, trade_id: str):
         url = '/trade'
         data = json.dumps({
-            "Type": "CloseBy",
+            "Type": "Close",
             "Id": trade_id,
         })
         self.api_request(

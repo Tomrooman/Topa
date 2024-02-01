@@ -71,7 +71,8 @@ class FxOpenFeedWebsocket(FxOpenWebsocketManager):
             if (candle_5min_update is not None):
                 self.botService.handle_new_candle_from_websocket(
                     'M5', self.convert_candle_update_to_candle(candle_5min_update, symbol, result['AskClose']))
-        self.loggerService.log(f"received feed message: {parsed_message}")
+        if (parsed_message['Response'] != 'Symbols' and parsed_message['Response'] != 'Currencies'):
+            self.loggerService.log(f"received feed message: {parsed_message}")
 
     def on_error(self, ws, error):
         self.loggerService.log(f"feed error: {error}")
