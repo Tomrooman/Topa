@@ -88,11 +88,8 @@ class FxOpenApi():
             raise e
 
     def close_trade(self, trade_id: str):
-        url = '/trade'
-        data = json.dumps({
-            "Type": "Close",
-            "Id": trade_id,
-        })
+        url = f'/trade?Type=Close&Id={trade_id}'
+        data = ''
         self.api_request(
             method='DELETE', url=url, data=data, is_auth_required=True)
 
