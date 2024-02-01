@@ -17,39 +17,14 @@ jobs:
       - id: set_branch_name_step
         run: echo "branchName=${{ env.BRANCH_NAME }}" >> $GITHUB_OUTPUT
 
-  install_packages:
+  deploy_topa_bot_demo:
     runs-on: self-hosted
     if: needs.set_branch_name.outputs.branchName == 'topa-bot-demo'
     needs: set_branch_name
     container:
-      image: python:3.11.7-slim-bullseye
-    outputs:
-      branchName: ${{ needs.set_branch_name.outputs.branchName }}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/upload-artifact@v3
-        with:
-          name: shared-folder-${{ needs.set_branch_name.outputs.branchName }}
-          retention-days: 1
-          path: |
-            requirements.txt
-      - run: source env/bin/activate
-      - run: pip3 freeze > requirements.txt
-
-  deploy_topa_bot_demo:
-    runs-on: self-hosted
-    if: needs.set_branch_name.outputs.branchName == 'topa-bot-demo'
-    needs: install_packages
-    container:
       image: docker:25.0.1-dind
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
-        with:
-          name: shared-folder-${{ needs.install_packages.outputs.branchName }}
-      - run: sudo truncate -s-2 /etc/docker/daemon.json
-      - run: 'echo ", \"insecure-registries\": [\"${{ secrets.PRIVATE_REGISTRY_IP }}:${{ secrets.PRIVATE_REGISTRY_PORT }}\"]}" | sudo tee -a /etc/docker/daemon.json'
-      - run: sudo systemctl restart docker
-      - run: docker login -u ${{ secrets.PRIVATE_REGISTRY_USERNAME }} -p ${{ secrets.PRIVATE_REGISTRY_PASSWORD }} ${{ secrets.PRIVATE_REGISTRY_IP }}:${{ secrets.PRIVATE_REGISTRY_PORT }}
+      - run: docker login -u ${{ secrets.PRIVATE_REGISTRY_USERNAME }} -p ${{ secrets.PRIVATE_REGISTRY_PASSWORD }} http://${{ secrets.PRIVATE_REGISTRY_IP }}:${{ secrets.PRIVATE_REGISTRY_PORT }}
       - run: docker build --pull --no-cache -f dockerfiles/demo.bot.dockerfile -t ${{ secrets.PRIVATE_REGISTRY_IP }}:${{ secrets.PRIVATE_REGISTRY_PORT }}/topa-bot-demo .
       - run: docker push ${{ secrets.PRIVATE_REGISTRY_IP }}:${{ secrets.PRIVATE_REGISTRY_PORT }}/topa-bot-demo
