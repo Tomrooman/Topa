@@ -68,11 +68,10 @@ class BotProd(BotManager):
             if (custom_close == 'close_profit'):
                 self.check_close_in_profit()
                 self.loggerService.log('close_profit')
-                return
             if (custom_close == 'force_close'):
                 self.loggerService.log('force_close')
                 self.fxopenApi.close_trade(self.trade.fxopen_id)
-                return
+            return
 
         position = self.check_strategy()
         if (position == 'Idle'):
