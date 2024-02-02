@@ -66,8 +66,8 @@ class BotProd(BotManager):
         if (self.trade.is_closed == False):
             custom_close = self.check_for_custom_close()
             if (custom_close == 'close_profit'):
-                self.check_close_in_profit()
                 self.loggerService.log('close_profit')
+                self.check_close_in_profit()
             if (custom_close == 'force_close'):
                 self.loggerService.log('force_close')
                 self.fxopenApi.close_trade(self.trade.fxopen_id)

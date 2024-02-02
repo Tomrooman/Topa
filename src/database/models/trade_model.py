@@ -107,9 +107,9 @@ class TradeModel:
     def drop_table():
         MongoDB.database[TABLE_NAME].drop()
 
-    def to_json(self):
+    def to_json(self, for_database: bool = False):
         return {
-            "_id": str(self._id),
+            "_id": self._id if for_database == True else str(self._id),
             'is_closed': self.is_closed,
             'price': self.price,
             'status': self.status,
@@ -127,4 +127,4 @@ class TradeModel:
 
     def save(self):
         MongoDB.database[TABLE_NAME].update_one({'_id': self._id}, {
-            "$set": self.to_json()}, upsert=True)
+            "$set": self.to_json(True)}, upsert=True)
