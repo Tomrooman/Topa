@@ -25,8 +25,9 @@ class BotManager:
     CANDLES_HISTORY_LENGTH = 50
     MIN_BUY_TAKE_PROFIT_PERCENTAGE = 0.001
     MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.001
-    MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.003
-    MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.003
+    MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.0045
+    MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.0045
+    MAX_LOSS_PERCENTAGE = 0.0015
 
     balance: float = 2000
     max_balance: float = balance
@@ -85,6 +86,8 @@ class BotManager:
                 [candle.high for candle in previous_candles])
             max_take_profit_price = current_candle.close + \
                 (current_candle.close * self.MAX_BUY_TAKE_PROFIT_PERCENTAGE)
+            min_stop_loss_price = current_candle.close - \
+                (current_candle.close * self.MAX_LOSS_PERCENTAGE)
             if (higher_previous_price <= current_candle.close):
                 return
             profit_percentage = 1/(current_candle.close /
@@ -95,11 +98,12 @@ class BotManager:
                 self.trade.take_profit = higher_previous_price
                 self.trade.stop_loss = current_candle.close - \
                     ((higher_previous_price - current_candle.close) / 2)
+                if (self.trade.stop_loss < min_stop_loss_price):
+                    self.trade.stop_loss = min_stop_loss_price
                 return {'position': 'Buy', "profit_percentage": profit_percentage}
             if (higher_previous_price >= max_take_profit_price):
                 self.trade.take_profit = max_take_profit_price
-                self.trade.stop_loss = current_candle.close - \
-                    ((max_take_profit_price - current_candle.close) / 2)
+                self.trade.stop_loss = min_stop_loss_price
                 return {'position': 'Buy', "profit_percentage": profit_percentage}
         if ((self.rsi_5min.value >= 75 and self.rsi_30min.value >= 60 and self.rsi_1h.value >= 60 and self.rsi_1h.value > self.rsi_4h.value) or
                     ((max_rsi == self.rsi_5min.value and self.rsi_5min.value >=
@@ -109,6 +113,8 @@ class BotManager:
                 [candle.low for candle in previous_candles])
             min_take_profit_price = current_candle.close - \
                 (current_candle.close * self.MAX_SELL_TAKE_PROFIT_PERCENTAGE)
+            max_stop_loss_price = current_candle.close + \
+                (current_candle.close * self.MAX_LOSS_PERCENTAGE)
             if (lower_previous_price >= current_candle.close):
                 return
             profit_percentage = 1 / (current_candle.close /
@@ -119,11 +125,12 @@ class BotManager:
                 self.trade.take_profit = lower_previous_price
                 self.trade.stop_loss = current_candle.close + \
                     ((current_candle.close - lower_previous_price) / 2)
+                if (self.trade.stop_loss > max_stop_loss_price):
+                    self.trade.stop_loss = max_stop_loss_price
                 return {'position': 'Sell', "profit_percentage": profit_percentage}
             if (lower_previous_price <= min_take_profit_price):
                 self.trade.take_profit = min_take_profit_price
-                self.trade.stop_loss = current_candle.close + \
-                    ((current_candle.close - min_take_profit_price) / 2)
+                self.trade.stop_loss = max_stop_loss_price
                 return {'position': 'Sell', "profit_percentage": profit_percentage}
 
     def get_position_value(self) -> int:
