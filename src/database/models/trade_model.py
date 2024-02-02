@@ -109,7 +109,7 @@ class TradeModel:
 
     def to_json(self):
         return {
-            "_id": self._id,
+            "_id": str(self._id),
             'is_closed': self.is_closed,
             'price': self.price,
             'status': self.status,
