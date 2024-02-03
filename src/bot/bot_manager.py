@@ -27,7 +27,7 @@ class BotManager:
     MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.001
     MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.0045
     MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.0045
-    MAX_LOSS_PERCENTAGE = 0.001
+    MAX_LOSS_PERCENTAGE = 0.0015
 
     balance: float = 2000
     max_balance: float = balance
