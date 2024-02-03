@@ -130,12 +130,13 @@ class BotDev(BotManager):
             self.check_to_close_trade(custom_close)
             # return DO NOT RETURN HERE BECAUSE TRADE CAN BE CLOSED WHILE CANDLE IS NOT CLOSED
 
-        position = self.check_strategy()
+        if (self.trade.is_closed == True):
+            position = self.check_strategy()
 
-        if (position == 'Idle'):
-            return
+            if (position == 'Idle'):
+                return
 
-        self.take_position(position)
+            self.take_position(position)
 
     def take_position(self, side: str):
         current_candle = self.get_last_candle()

@@ -80,9 +80,9 @@ class BotManager:
         min_rsi = min(self.rsi_5min_fast.value, self.rsi_5min.value, self.rsi_30min.value,
                       self.rsi_1h.value, self.rsi_4h.value)
         previous_candles = self.candles_5min_list[-self.CANDLES_HISTORY_LENGTH:]
-        if (min_rsi == self.rsi_5min.value and self.rsi_5min_fast.value < self.rsi_30min.value and self.rsi_30min.value < self.rsi_4h.value and self.rsi_1h.value < self.rsi_4h.value):  # BUY
+        if (min_rsi == self.rsi_5min_fast.value and self.rsi_5min_fast.value <= 20 and self.rsi_30min.value < self.rsi_4h.value and self.rsi_1h.value < self.rsi_4h.value):  # BUY
             return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
-        if (max_rsi == self.rsi_5min.value and self.rsi_5min_fast.value > self.rsi_30min.value and self.rsi_30min.value > self.rsi_4h.value and self.rsi_1h.value > self.rsi_4h.value):  # SELL
+        if (max_rsi == self.rsi_5min_fast.value and self.rsi_5min_fast.value >= 80 and self.rsi_30min.value > self.rsi_4h.value and self.rsi_1h.value > self.rsi_4h.value):  # SELL
             return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
 
     def get_buy_take_profit_and_stop_loss(self, current_candle: Candle, previous_candles: list[Candle]) -> dict | None:
