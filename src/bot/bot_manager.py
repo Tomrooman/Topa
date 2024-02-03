@@ -27,7 +27,7 @@ class BotManager:
     MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.001
     MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.0045
     MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.0045
-    MAX_LOSS_PERCENTAGE = 0.0015
+    MAX_LOSS_PERCENTAGE = 0.002
 
     balance: float = 2000
     max_balance: float = balance
@@ -89,7 +89,7 @@ class BotManager:
         sorted_highs = sorted(
             [candle.high for candle in previous_candles], reverse=True)
         highest_previous_price = sorted_highs[1]
-        # higher_previous_price = max(
+        # highest_previous_price = max(
         #     [candle.close for candle in previous_candles])
         max_take_profit_price = current_candle.close + \
             (current_candle.close * self.MAX_BUY_TAKE_PROFIT_PERCENTAGE)
@@ -117,7 +117,7 @@ class BotManager:
         sorted_lows = sorted(
             [candle.low for candle in previous_candles], reverse=False)
         lowest_previous_price = sorted_lows[1]
-        # lower_previous_price = min(
+        # lowest_previous_price = min(
         #     [candle.close for candle in previous_candles])
         min_take_profit_price = current_candle.close - \
             (current_candle.close * self.MAX_SELL_TAKE_PROFIT_PERCENTAGE)
