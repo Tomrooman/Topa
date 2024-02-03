@@ -22,7 +22,7 @@ class RsiData:
 class BotManager:
     FEES = 0.000035  # 0.0035%
     LEVERAGE = 5
-    CANDLES_HISTORY_LENGTH = 50
+    CANDLES_HISTORY_LENGTH = 100
     MIN_BUY_TAKE_PROFIT_PERCENTAGE = 0.001
     MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.001
     MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.0045
@@ -86,51 +86,57 @@ class BotManager:
             return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
 
     def get_buy_take_profit_and_stop_loss(self, current_candle: Candle, previous_candles: list[Candle]) -> dict | None:
-        higher_previous_price = max(
-            [candle.high for candle in previous_candles])
+        sorted_highs = sorted(
+            [candle.high for candle in previous_candles], reverse=True)
+        highest_previous_price = sorted_highs[1]
+        # higher_previous_price = max(
+        #     [candle.close for candle in previous_candles])
         max_take_profit_price = current_candle.close + \
             (current_candle.close * self.MAX_BUY_TAKE_PROFIT_PERCENTAGE)
         min_stop_loss_price = current_candle.close - \
             (current_candle.close * self.MAX_LOSS_PERCENTAGE)
-        if (higher_previous_price <= current_candle.close):
+        if (highest_previous_price <= current_candle.close):
             return
         profit_percentage = 1/(current_candle.close /
-                               (higher_previous_price - current_candle.close))
+                               (highest_previous_price - current_candle.close))
         if (profit_percentage < self.MIN_BUY_TAKE_PROFIT_PERCENTAGE):
             return
-        if (higher_previous_price < max_take_profit_price):
-            self.trade.take_profit = higher_previous_price
+        if (highest_previous_price < max_take_profit_price):
+            self.trade.take_profit = highest_previous_price
             self.trade.stop_loss = current_candle.close - \
-                ((higher_previous_price - current_candle.close) / 2)
+                ((highest_previous_price - current_candle.close) / 2)
             if (self.trade.stop_loss < min_stop_loss_price):
                 self.trade.stop_loss = min_stop_loss_price
             return {'position': 'Buy', "profit_percentage": profit_percentage}
-        if (higher_previous_price >= max_take_profit_price):
+        if (highest_previous_price >= max_take_profit_price):
             self.trade.take_profit = max_take_profit_price
             self.trade.stop_loss = min_stop_loss_price
             return {'position': 'Buy', "profit_percentage": profit_percentage}
 
     def get_sell_take_profit_and_stop_loss(self, current_candle: Candle, previous_candles: list[Candle]) -> dict | None:
-        lower_previous_price = min(
-            [candle.low for candle in previous_candles])
+        sorted_lows = sorted(
+            [candle.low for candle in previous_candles], reverse=False)
+        lowest_previous_price = sorted_lows[1]
+        # lower_previous_price = min(
+        #     [candle.close for candle in previous_candles])
         min_take_profit_price = current_candle.close - \
             (current_candle.close * self.MAX_SELL_TAKE_PROFIT_PERCENTAGE)
         max_stop_loss_price = current_candle.close + \
             (current_candle.close * self.MAX_LOSS_PERCENTAGE)
-        if (lower_previous_price >= current_candle.close):
+        if (lowest_previous_price >= current_candle.close):
             return
         profit_percentage = 1 / (current_candle.close /
-                                 (current_candle.close - lower_previous_price))
+                                 (current_candle.close - lowest_previous_price))
         if (profit_percentage < self.MIN_SELL_TAKE_PROFIT_PERCENTAGE):
             return
-        if (lower_previous_price > min_take_profit_price):
-            self.trade.take_profit = lower_previous_price
+        if (lowest_previous_price > min_take_profit_price):
+            self.trade.take_profit = lowest_previous_price
             self.trade.stop_loss = current_candle.close + \
-                ((current_candle.close - lower_previous_price) / 2)
+                ((current_candle.close - lowest_previous_price) / 2)
             if (self.trade.stop_loss > max_stop_loss_price):
                 self.trade.stop_loss = max_stop_loss_price
             return {'position': 'Sell', "profit_percentage": profit_percentage}
-        if (lower_previous_price <= min_take_profit_price):
+        if (lowest_previous_price <= min_take_profit_price):
             self.trade.take_profit = min_take_profit_price
             self.trade.stop_loss = max_stop_loss_price
             return {'position': 'Sell', "profit_percentage": profit_percentage}
