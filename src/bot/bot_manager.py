@@ -41,6 +41,9 @@ class BotManager:
     rsi_1h = RsiData(value=0, period=14)
     rsi_4h = RsiData(value=0, period=7)
 
+    buy_triggered = False
+    sell_triggered = False
+
     candles_5min_list: list[Candle] = []
     candles_30min_list: list[Candle] = []
     candles_1h_list: list[Candle] = []
@@ -80,10 +83,23 @@ class BotManager:
         min_rsi = min(self.rsi_5min_fast.value, self.rsi_5min.value, self.rsi_30min.value,
                       self.rsi_1h.value, self.rsi_4h.value)
         previous_candles = self.candles_5min_list[-self.CANDLES_HISTORY_LENGTH:]
-        if (min_rsi == self.rsi_5min_fast.value and self.rsi_5min_fast.value <= 20 and self.rsi_30min.value < self.rsi_4h.value and self.rsi_1h.value < self.rsi_4h.value):  # BUY
-            return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
-        if (max_rsi == self.rsi_5min_fast.value and self.rsi_5min_fast.value >= 80 and self.rsi_30min.value > self.rsi_4h.value and self.rsi_1h.value > self.rsi_4h.value):  # SELL
-            return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
+        if (self.buy_triggered == True):
+            if (self.rsi_5min.value >= 30):
+                self.buy_triggered = False
+                return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
+        elif (self.sell_triggered == True):
+            if (self.rsi_5min.value <= 70):
+                self.sell_triggered = False
+                return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
+
+        if (min_rsi == self.rsi_5min_fast.value and self.rsi_5min_fast.value <= 30 and self.rsi_30min.value < self.rsi_4h.value and self.rsi_1h.value < self.rsi_4h.value):  # BUY
+            # return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
+            self.buy_triggered = True
+            self.sell_triggered = False
+        elif (max_rsi == self.rsi_5min_fast.value and self.rsi_5min_fast.value >= 70 and self.rsi_30min.value > self.rsi_4h.value and self.rsi_1h.value > self.rsi_4h.value):  # SELL
+            # return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
+            self.sell_triggered = True
+            self.buy_triggered = False
 
     def get_buy_take_profit_and_stop_loss(self, current_candle: Candle, previous_candles: list[Candle]) -> dict | None:
         sorted_highs = sorted(
