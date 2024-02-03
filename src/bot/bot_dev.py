@@ -128,7 +128,7 @@ class BotDev(BotManager):
         custom_close = self.check_for_custom_close()
         if (self.trade.is_closed == False):
             self.check_to_close_trade(custom_close)
-            return
+            # return DO NOT RETURN HERE BECAUSE TRADE CAN BE CLOSED WHILE CANDLE IS NOT CLOSED
 
         position = self.check_strategy()
 
@@ -151,7 +151,7 @@ class BotDev(BotManager):
         current_candle = self.get_last_candle()
         closed_date = self.get_close_date_from_candle(current_candle)
         # Loss
-        if ((self.trade.type.value == 'sell' and current_candle.close >= self.trade.stop_loss) or (self.trade.type.value == 'buy' and current_candle.close <= self.trade.stop_loss)):
+        if ((self.trade.type.value == 'sell' and current_candle.high >= self.trade.stop_loss) or (self.trade.type.value == 'buy' and current_candle.low <= self.trade.stop_loss)):
             diff_price_amount = abs(self.trade.stop_loss - self.trade.price)
             loss_amount = self.trade.position_value * \
                 (diff_price_amount / self.trade.price)
@@ -165,7 +165,7 @@ class BotDev(BotManager):
             self.trade._id = ObjectId()
             self.set_drawdown()
         # Profit
-        elif ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.take_profit) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.take_profit)):
+        elif ((self.trade.type.value == 'sell' and current_candle.low <= self.trade.take_profit) or (self.trade.type.value == 'buy' and current_candle.high >= self.trade.take_profit)):
             diff_price_amount = abs(self.trade.take_profit - self.trade.price)
             profit_amount = self.trade.position_value * \
                 (diff_price_amount / self.trade.price)
