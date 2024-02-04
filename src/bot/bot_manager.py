@@ -38,7 +38,7 @@ class BotManager:
                        take_profit=0, stop_loss=0, type=TradeType('buy'), close=0, profit=0, comission=0,
                        fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='')
     indicators = IndicatorsModel(_id=ObjectId(), trade_id=trade._id, profit=0, type=TradeType('buy'),
-                                 rsi_5_min=0, rsi_5_min_fast=0, rsi_30_min=0, rsi_1h=0, rsi_4h=0)
+                                 rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0)
     rsi_5min = RsiData(value=0, period=14)
     rsi_5min_fast = RsiData(value=0, period=7)
     rsi_30min = RsiData(value=0, period=14)
@@ -68,8 +68,18 @@ class BotManager:
             if (
                 position is not None and position['position'] == 'Buy'
             ):
+                self.indicators.rsi_5min_fast = self.rsi_5min_fast.value
+                self.indicators.rsi_5min = self.rsi_5min.value
+                self.indicators.rsi_30min = self.rsi_30min.value
+                self.indicators.rsi_1h = self.rsi_1h.value
+                self.indicators.rsi_4h = self.rsi_4h.value
                 return 'Buy'
             if (position is not None and position['position'] == 'Sell'):
+                self.indicators.rsi_5min_fast = self.rsi_5min_fast.value
+                self.indicators.rsi_5min = self.rsi_5min.value
+                self.indicators.rsi_30min = self.rsi_30min.value
+                self.indicators.rsi_1h = self.rsi_1h.value
+                self.indicators.rsi_4h = self.rsi_4h.value
                 return 'Sell'
         return 'Idle'
 
@@ -191,14 +201,9 @@ class BotManager:
         if (len(rsi_5min_local) > 0):
             self.rsi_5min.value = rsi_5min_local[-1]
             self.rsi_5min_fast.value = rsi_5min_fast_local[-1]
-            self.indicators.rsi_5_min = self.rsi_5min.value
-            self.indicators.rsi_5_min_fast = self.rsi_5min_fast.value
         if (len(rsi_30min_local) > 0):
             self.rsi_30min.value = rsi_30min_local[-1]
-            self.indicators.rsi_30_min = self.rsi_30min.value
         if (len(rsi_1h_local) > 0):
             self.rsi_1h.value = rsi_1h_local[-1]
-            self.indicators.rsi_1h = self.rsi_1h.value
         if (len(rsi_4h_local) > 0):
             self.rsi_4h.value = rsi_4h_local[-1]
-            self.indicators.rsi_4h = self.rsi_4h.value
