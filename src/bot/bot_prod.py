@@ -157,6 +157,7 @@ class BotProd(BotManager):
             self.trade.close = trade.close if fxopen_trade == None else fxopen_trade.close
             self.trade.profit = trade.profit if fxopen_trade == None else fxopen_trade.profit
             self.trade.closed_at = trade.closed_at if fxopen_trade == None else fxopen_trade.closed_at
+            self.trade.comission = trade.comission if fxopen_trade == None else fxopen_trade.comission
             self.trade.save()
             self.loggerService.log(f'refreshed trade: {self.trade.to_json()}')
 
