@@ -82,6 +82,10 @@ class BotProd(BotManager):
         fxopen_trade = self.fxopenApi.create_trade(
             side=position, amount=position_value, stop_loss=self.trade.stop_loss, take_profit=self.trade.take_profit, comment=new_trade_id)
         self.trade = fxopen_trade
+        self.indicators._id = ObjectId()
+        self.indicators.type = self.trade.type
+        self.indicators.trade_id = new_trade_id
+        self.indicators.save()
         self.trade.save()
 
     def check_close_in_profit(self):
@@ -129,9 +133,11 @@ class BotProd(BotManager):
         self.trade.closed_at = datetime.fromtimestamp(
             closed_at_timestamp / 1000, tz=timezone.utc).isoformat()
         self.trade.profit = trade_profit
+        self.indicators.profit = trade_profit
         self.trade.close = close_price
         self.trade.comission = comission
         self.trade.save()
+        self.indicators.save()
         self.refresh_balance()
 
     def refresh_balance(self):
