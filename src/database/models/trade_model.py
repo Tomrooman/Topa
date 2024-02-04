@@ -33,6 +33,7 @@ class TradeModel:
     type: TradeType
     close: float
     profit: float
+    comission: float
     fxopen_id: str
     opened_at_timestamp: int
     opened_at: str
@@ -51,6 +52,7 @@ class TradeModel:
             type=TradeType(trade['type']),
             close=trade['close'],
             profit=trade['profit'],
+            comission=trade['comission'],
             fxopen_id=trade['fxopen_id'],
             opened_at_timestamp=trade['opened_at_timestamp'],
             opened_at=trade['opened_at'],
@@ -70,6 +72,7 @@ class TradeModel:
             type=TradeType(trade['type']),
             close=trade['close'],
             profit=trade['profit'],
+            comission=trade['comission'],
             fxopen_id=trade['fxopen_id'],
             opened_at_timestamp=trade['opened_at_timestamp'],
             opened_at=trade['opened_at'],
@@ -97,6 +100,7 @@ class TradeModel:
             type=TradeType(trade['type']),
             close=trade['close'],
             profit=trade['profit'],
+            comission=trade['comission'],
             fxopen_id=trade['fxopen_id'],
             opened_at_timestamp=trade['opened_at_timestamp'],
             opened_at=trade['opened_at'],
@@ -119,6 +123,7 @@ class TradeModel:
             'type': self.type.value,
             'close': self.close,
             'profit': self.profit,
+            'comission': self.comission,
             'fxopen_id': self.fxopen_id,
             'opened_at_timestamp': self.opened_at_timestamp,
             'opened_at': self.opened_at,

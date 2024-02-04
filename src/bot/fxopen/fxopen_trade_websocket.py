@@ -11,7 +11,7 @@ from logger.logger_service import LoggerService
 @dataclass
 class BotServiceSharedTradeFunctions:
     handle_canceled_trade_from_websocket: Callable[[str], None]
-    handle_closed_trade: Callable[[float, float, int], None]
+    handle_closed_trade: Callable[[float, float, float, int], None]
     startup_data: Callable[[], None]
 
 
@@ -50,8 +50,12 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
 
             if ("Profit" in parsed_message["Result"] and parsed_message["Result"]["Event"] == 'Filled'):
                 self.loggerService.log('trade closed')
+                profit = parsed_message["Result"]["Profit"]["Value"]
+                close_price = parsed_message["Result"]["Trade"]["Price"]
+                closed_at = parsed_message["Result"]["Trade"]["Modified"]
+                comission = parsed_message["Result"]["Commission"]
                 self.botService.handle_closed_trade(
-                    parsed_message["Result"]["Profit"]["Value"], parsed_message["Result"]["Trade"]["Price"], parsed_message["Result"]["Trade"]["Modified"])
+                    profit, close_price, comission, closed_at)
 
     def on_error(self, ws, error):
         self.loggerService.log(f'trade error: {error}')

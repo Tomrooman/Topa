@@ -124,12 +124,13 @@ class BotProd(BotManager):
         self.trade.status = 'Canceled'
         self.trade.save()
 
-    def handle_closed_trade(self, trade_profit: float, close_price: float, closed_at_timestamp: int):
+    def handle_closed_trade(self, trade_profit: float, close_price: float, comission: float, closed_at_timestamp: int):
         self.trade.is_closed = True
         self.trade.closed_at = datetime.fromtimestamp(
             closed_at_timestamp / 1000, tz=timezone.utc).isoformat()
         self.trade.profit = trade_profit
         self.trade.close = close_price
+        self.trade.comission = comission
         self.trade.save()
         self.refresh_balance()
 
