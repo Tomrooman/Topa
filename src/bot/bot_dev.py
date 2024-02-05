@@ -159,7 +159,7 @@ class BotDev(BotManager):
         current_candle = self.get_last_candle()
         closed_date = self.get_close_date_from_candle(current_candle)
         # Loss
-        if ((self.trade.type.value == 'sell' and current_candle.high >= self.trade.stop_loss) or (self.trade.type.value == 'buy' and current_candle.low <= self.trade.stop_loss)):
+        if ((self.trade.type.value == TradeType.SELL and current_candle.high >= self.trade.stop_loss) or (self.trade.type.value == TradeType.BUY and current_candle.low <= self.trade.stop_loss)):
             diff_price_amount = abs(self.trade.stop_loss - self.trade.price)
             loss_amount = self.trade.position_value * \
                 (diff_price_amount / self.trade.price)
@@ -176,7 +176,7 @@ class BotDev(BotManager):
             self.trade._id = ObjectId()
             self.set_drawdown()
         # Profit
-        elif ((self.trade.type.value == 'sell' and current_candle.low <= self.trade.take_profit) or (self.trade.type.value == 'buy' and current_candle.high >= self.trade.take_profit)):
+        elif ((self.trade.type.value == TradeType.SELL and current_candle.low <= self.trade.take_profit) or (self.trade.type.value == TradeType.BUY and current_candle.high >= self.trade.take_profit)):
             diff_price_amount = abs(self.trade.take_profit - self.trade.price)
             profit_amount = self.trade.position_value * \
                 (diff_price_amount / self.trade.price)
@@ -197,7 +197,7 @@ class BotDev(BotManager):
             diff_price_amount = abs(current_candle.close - self.trade.price)
             trade_profit = self.trade.position_value * \
                 (diff_price_amount / self.trade.price)
-            if ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.price) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.price)):
+            if ((self.trade.type.value == TradeType.SELL and current_candle.close <= self.trade.price) or (self.trade.type.value == TradeType.BUY and current_candle.close >= self.trade.price)):
                 final_profit = trade_profit - fees_amount
                 self.balance += final_profit
                 self.indicators.profit = final_profit
@@ -214,12 +214,12 @@ class BotDev(BotManager):
             diff_price_amount = abs(current_candle.close - self.trade.price)
             trade_profit = self.trade.position_value * \
                 (diff_price_amount / self.trade.price)
-            if ((self.trade.type.value == 'sell' and current_candle.close <= self.trade.price) or (self.trade.type.value == 'buy' and current_candle.close >= self.trade.price)):
+            if ((self.trade.type.value == TradeType.SELL and current_candle.close <= self.trade.price) or (self.trade.type.value == TradeType.BUY and current_candle.close >= self.trade.price)):
                 final_profit = trade_profit - fees_amount
                 self.balance += final_profit
                 self.trade.profit = final_profit
                 self.indicators.profit = final_profit
-            if ((self.trade.type.value == 'sell' and current_candle.close >= self.trade.price) or (self.trade.type.value == 'buy' and current_candle.close <= self.trade.price)):
+            if ((self.trade.type.value == TradeType.SELL and current_candle.close >= self.trade.price) or (self.trade.type.value == TradeType.BUY and current_candle.close <= self.trade.price)):
                 final_profit = trade_profit + fees_amount
                 self.balance -= final_profit
                 self.trade.profit = -trade_profit

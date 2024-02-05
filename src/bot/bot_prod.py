@@ -11,7 +11,7 @@ from bot.fxopen.fxopen_trade_websocket import BotServiceSharedTradeFunctions, Fx
 from bot.fxopen.fxopen_feed_websocket import BotServiceSharedFeedFunctions, FxOpenFeedWebsocket
 from bot.bot_manager import BotManager
 from bot.fxopen.fxopen_api import FxOpenApi, Periodicity
-from database.models.trade_model import TradeModel
+from database.models.trade_model import TradeModel, TradeType
 from config.config_service import ConfigService
 from logger.logger_service import LoggerService
 
@@ -93,7 +93,7 @@ class BotProd(BotManager):
 
     def check_close_in_profit(self):
         last_candle = self.get_last_candle()
-        if ((self.trade.type.value == 'sell' and last_candle.close <= self.trade.price) or (self.trade.type.value == 'buy' and last_candle.close >= self.trade.price)):
+        if ((self.trade.type.value == TradeType.SELL and last_candle.close <= self.trade.price) or (self.trade.type.value == TradeType.BUY and last_candle.close >= self.trade.price)):
             self.fxopenApi.close_trade(self.trade.fxopen_id)
 
     def handle_new_candle_from_websocket(self, periodicity: Periodicity, candle: Candle):

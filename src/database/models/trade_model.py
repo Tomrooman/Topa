@@ -9,12 +9,12 @@ TABLE_NAME = 'trades'
 
 
 class TradeType:
-    BUY = 'buy'
-    SELL = 'sell'
+    BUY = 'Buy'
+    SELL = 'Sell'
     value: str
 
     def __init__(self, type: str):
-        if type.lower() != self.BUY and type.lower() != self.SELL:
+        if type != self.BUY and type != self.SELL:
             raise Exception(
                 'Invalid trade type {type}, must be either {self.BUY} or {self.SELL}')
         self.value = type
