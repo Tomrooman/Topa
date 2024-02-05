@@ -63,6 +63,8 @@ class BotProd(BotManager):
         self.set_all_rsi()
         self.loggerService.log('process strategy')
         self.loggerService.log(f'trade is closed: {self.trade.is_closed}')
+        self.loggerService.log(f'buy triggered: {self.buy_triggered}')
+        self.loggerService.log(f'sell triggered: {self.sell_triggered}')
 
         if (self.trade.is_closed == False):
             custom_close = self.check_for_custom_close()
