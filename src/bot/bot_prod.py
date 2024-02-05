@@ -35,7 +35,7 @@ class BotProd(BotManager):
 
     def start(self):
         self.loggerService.log(f'start {self.environment}')
-        self.startup_data()
+        self.startup_data(True)
 
         trade_websocket_shared_functions = BotServiceSharedTradeFunctions(
             handle_canceled_trade_from_websocket=self.handle_canceled_trade_from_websocket,
@@ -51,13 +51,14 @@ class BotProd(BotManager):
         )
         FxOpenFeedWebsocket(self.environment, feed_websocket_shared_functions)
 
-    def startup_data(self):
+    def startup_data(self, startup=False):
         self.loggerService.log(f'startup data {self.environment}')
         self.set_candles_list()
         self.set_all_rsi()
         self.refresh_trade()
         self.refresh_balance()
-        self.test_strategy()
+        if (startup == False):
+            self.test_strategy()
 
     def test_strategy(self):
         self.set_all_rsi()
@@ -66,15 +67,18 @@ class BotProd(BotManager):
         if (self.trade.is_closed == False):
             custom_close = self.check_for_custom_close()
             if (custom_close == 'close_profit'):
-                self.loggerService.log('close_profit')
+                self.loggerService.log('check close_profit')
                 self.check_close_in_profit()
             if (custom_close == 'force_close'):
-                self.loggerService.log('force_close')
+                self.loggerService.log('check force_close')
                 self.fxopenApi.close_trade(self.trade.fxopen_id)
             return
 
         position = self.check_strategy()
         if (position == 'Idle'):
+            self.loggerService.log(f'trade is closed: {self.trade.is_closed}')
+            self.loggerService.log(f'buy triggered: {self.buy_triggered}')
+            self.loggerService.log(f'sell triggered: {self.sell_triggered}')
             return
 
         position_value = self.get_position_value()
