@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import math
 from typing import Literal
 from bson import ObjectId
-from database.models.trade_model import TradeModel, TradeType
+from database.models.trade_model import TradeModel, TradeType, TradeTypeValues
 from database.models.indicators_model import IndicatorsModel
 from candle import Candle
 from indicators import get_rsi
@@ -35,9 +35,9 @@ class BotManager:
     max_drawdown: float = 0
     current_drawdown: float = 0
     trade = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value=0, status='New',
-                       take_profit=0, stop_loss=0, type=TradeType('Buy'), close=0, profit=0, comission=0,
+                       take_profit=0, stop_loss=0, type=TradeType(TradeType.BUY), close=0, profit=0, comission=0,
                        fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='')
-    indicators = IndicatorsModel(_id=ObjectId(), trade_id=trade._id, profit=0, type=TradeType('Buy'),
+    indicators = IndicatorsModel(_id=ObjectId(), trade_id=trade._id, profit=0, type=TradeType(TradeType.BUY),
                                  rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0)
     rsi_5min = RsiData(value=0, period=14)
     rsi_5min_fast = RsiData(value=0, period=7)
@@ -60,27 +60,27 @@ class BotManager:
         return datetime.fromtimestamp(
             (candle.start_timestamp + (1000 * 60 * 5)) / 1000, tz=timezone.utc)
 
-    def check_strategy(self) -> Literal['Buy', 'Sell', 'Idle']:
+    def check_strategy(self) -> Literal[TradeTypeValues, 'Idle']:
         current_candle = self.get_last_candle()
         position = self.get_position_with_tp_and_sl(current_candle)
         closed_hour = self.get_close_date_from_candle(current_candle).hour
         if (closed_hour >= 7 and closed_hour <= 19):
             if (
-                position is not None and position['position'] == 'Buy'
+                position is not None and position['position'] == TradeType.BUY
             ):
                 self.indicators.rsi_5min_fast = self.rsi_5min_fast.value
                 self.indicators.rsi_5min = self.rsi_5min.value
                 self.indicators.rsi_30min = self.rsi_30min.value
                 self.indicators.rsi_1h = self.rsi_1h.value
                 self.indicators.rsi_4h = self.rsi_4h.value
-                return 'Buy'
-            if (position is not None and position['position'] == 'Sell'):
+                return TradeType.BUY
+            if (position is not None and position['position'] == TradeType.SELL):
                 self.indicators.rsi_5min_fast = self.rsi_5min_fast.value
                 self.indicators.rsi_5min = self.rsi_5min.value
                 self.indicators.rsi_30min = self.rsi_30min.value
                 self.indicators.rsi_1h = self.rsi_1h.value
                 self.indicators.rsi_4h = self.rsi_4h.value
-                return 'Sell'
+                return TradeType.SELL
         return 'Idle'
 
     def check_for_custom_close(self) -> Literal['close_profit', 'force_close'] | None:
@@ -137,11 +137,11 @@ class BotManager:
                 ((highest_previous_price - current_candle.close) / 2)
             if (self.trade.stop_loss < min_stop_loss_price):
                 self.trade.stop_loss = min_stop_loss_price
-            return {'position': 'Buy', "profit_percentage": profit_percentage}
+            return {'position': TradeType.BUY, "profit_percentage": profit_percentage}
         if (highest_previous_price >= max_take_profit_price):
             self.trade.take_profit = max_take_profit_price
             self.trade.stop_loss = min_stop_loss_price
-            return {'position': 'Buy', "profit_percentage": profit_percentage}
+            return {'position': TradeType.BUY, "profit_percentage": profit_percentage}
 
     def get_sell_take_profit_and_stop_loss(self, current_candle: Candle, previous_candles: list[Candle]) -> dict | None:
         sorted_lows = sorted(
@@ -165,11 +165,11 @@ class BotManager:
                 ((current_candle.close - lowest_previous_price) / 2)
             if (self.trade.stop_loss > max_stop_loss_price):
                 self.trade.stop_loss = max_stop_loss_price
-            return {'position': 'Sell', "profit_percentage": profit_percentage}
+            return {'position': TradeType.SELL, "profit_percentage": profit_percentage}
         if (lowest_previous_price <= min_take_profit_price):
             self.trade.take_profit = min_take_profit_price
             self.trade.stop_loss = max_stop_loss_price
-            return {'position': 'Sell', "profit_percentage": profit_percentage}
+            return {'position': TradeType.SELL, "profit_percentage": profit_percentage}
 
     def get_position_value(self) -> int:
         lot_price = 100000

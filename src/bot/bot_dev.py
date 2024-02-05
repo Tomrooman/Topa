@@ -8,7 +8,7 @@ import os  # NOQA
 parent_dir = os.path.dirname(os.path.realpath(__file__))  # NOQA
 sys.path.append(parent_dir + '/..')  # NOQA
 from bot.bot_manager import BotManager
-from database.models.trade_model import TradeModel, TradeType
+from database.models.trade_model import TradeModel, TradeType, TradeTypeValues
 from database.models.indicators_model import IndicatorsModel
 from bot.candle import Candle, create_from_csv_line
 
@@ -140,13 +140,13 @@ class BotDev(BotManager):
 
             self.take_position(position)
 
-    def take_position(self, side: str):
+    def take_position(self, side: TradeTypeValues):
         current_candle = self.get_last_candle()
         self.trade.is_closed = False
         self.trade.price = current_candle.close
         self.trade.opened_at = datetime.fromtimestamp(
             current_candle.start_timestamp / 1000, tz=timezone.utc).isoformat()
-        self.trade.type = TradeType(side.lower())
+        self.trade.type = TradeType(side)
         self.trade.position_value = self.get_position_value()
         self.indicators._id = ObjectId()
         self.indicators.type = self.trade.type

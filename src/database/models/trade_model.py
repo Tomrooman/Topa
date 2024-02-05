@@ -7,13 +7,15 @@ from database.instance import MongoDB
 
 TABLE_NAME = 'trades'
 
+TradeTypeValues = Literal['Buy', 'Sell']
+
 
 class TradeType:
     BUY = 'Buy'
     SELL = 'Sell'
-    value: str
+    value: TradeTypeValues
 
-    def __init__(self, type: str):
+    def __init__(self, type: TradeTypeValues):
         if type != self.BUY and type != self.SELL:
             raise Exception(
                 'Invalid trade type {type}, must be either {self.BUY} or {self.SELL}')
