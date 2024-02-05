@@ -62,6 +62,7 @@ class BotProd(BotManager):
     def test_strategy(self):
         self.set_all_rsi()
         self.loggerService.log('process strategy')
+        self.loggerService.log(f'trade is closed: {self.trade.is_closed}')
 
         if (self.trade.is_closed == False):
             custom_close = self.check_for_custom_close()
