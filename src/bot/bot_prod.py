@@ -62,9 +62,6 @@ class BotProd(BotManager):
     def test_strategy(self):
         self.set_all_rsi()
         self.loggerService.log('process strategy')
-        self.loggerService.log(f'trade is closed: {self.trade.is_closed}')
-        self.loggerService.log(f'buy triggered: {self.buy_triggered}')
-        self.loggerService.log(f'sell triggered: {self.sell_triggered}')
 
         if (self.trade.is_closed == False):
             custom_close = self.check_for_custom_close()
@@ -90,6 +87,9 @@ class BotProd(BotManager):
         self.indicators.trade_id = new_trade_id
         self.indicators.save()
         self.trade.save()
+        self.loggerService.log(f'trade is closed: {self.trade.is_closed}')
+        self.loggerService.log(f'buy triggered: {self.buy_triggered}')
+        self.loggerService.log(f'sell triggered: {self.sell_triggered}')
 
     def check_close_in_profit(self):
         last_candle = self.get_last_candle()
