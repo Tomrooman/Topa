@@ -53,7 +53,7 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
                 profit = parsed_message["Result"]["Profit"]["Value"]
                 close_price = parsed_message["Result"]["Trade"]["Price"]
                 closed_at = parsed_message["Result"]["Trade"]["Modified"]
-                comission = parsed_message["Result"]["Commission"]
+                comission = parsed_message["Result"]["Trade"]["Commission"]
                 self.botService.handle_closed_trade(
                     profit, close_price, comission, closed_at)
 
