@@ -62,9 +62,9 @@ class BotManager:
 
     def check_strategy(self) -> Literal[TradeTypeValues, 'Idle']:
         current_candle = self.get_last_candle()
-        position = self.get_position_with_tp_and_sl(current_candle)
         closed_hour = self.get_close_date_from_candle(current_candle).hour
         if (closed_hour >= 7 and closed_hour <= 19):
+            position = self.get_position_with_tp_and_sl(current_candle)
             if (
                 position is not None and position['position'] == TradeType.BUY
             ):
@@ -81,6 +81,9 @@ class BotManager:
                 self.indicators.rsi_1h = self.rsi_1h.value
                 self.indicators.rsi_4h = self.rsi_4h.value
                 return TradeType.SELL
+        else:
+            self.buy_triggered = False
+            self.sell_triggered = False
         return 'Idle'
 
     def check_for_custom_close(self) -> Literal['close_profit', 'force_close'] | None:
