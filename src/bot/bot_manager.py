@@ -34,11 +34,16 @@ class BotManager:
     max_balance: float = balance
     max_drawdown: float = 0
     current_drawdown: float = 0
-    trade = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value=0, status='New',
-                       take_profit=0, stop_loss=0, type=TradeType(TradeType.BUY), close=0, profit=0, comission=0,
-                       fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='')
-    indicators = IndicatorsModel(_id=ObjectId(), trade_id=trade._id, profit=0, type=TradeType(TradeType.BUY),
-                                 rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0)
+    trade_buy = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value=0, status='New',
+                           take_profit=0, stop_loss=0, type=TradeType(TradeType.BUY), close=0, profit=0, comission=0,
+                           fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='')
+    trade_sell = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value=0, status='New',
+                            take_profit=0, stop_loss=0, type=TradeType(TradeType.SELL), close=0, profit=0, comission=0,
+                            fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='')
+    indicators_buy = IndicatorsModel(_id=ObjectId(), trade_id=trade_buy._id, profit=0, type=TradeType(TradeType.BUY),
+                                     rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0)
+    indicators_sell = IndicatorsModel(_id=ObjectId(), trade_id=trade_buy._id, profit=0, type=TradeType(TradeType.SELL),
+                                      rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0)
     rsi_5min = RsiData(value=0, period=14)
     rsi_5min_fast = RsiData(value=0, period=7)
     rsi_30min = RsiData(value=0, period=14)
@@ -68,18 +73,18 @@ class BotManager:
             if (
                 position is not None and position['position'] == TradeType.BUY
             ):
-                self.indicators.rsi_5min_fast = self.rsi_5min_fast.value
-                self.indicators.rsi_5min = self.rsi_5min.value
-                self.indicators.rsi_30min = self.rsi_30min.value
-                self.indicators.rsi_1h = self.rsi_1h.value
-                self.indicators.rsi_4h = self.rsi_4h.value
+                self.indicators_buy.rsi_5min_fast = self.rsi_5min_fast.value
+                self.indicators_buy.rsi_5min = self.rsi_5min.value
+                self.indicators_buy.rsi_30min = self.rsi_30min.value
+                self.indicators_buy.rsi_1h = self.rsi_1h.value
+                self.indicators_buy.rsi_4h = self.rsi_4h.value
                 return TradeType.BUY
             if (position is not None and position['position'] == TradeType.SELL):
-                self.indicators.rsi_5min_fast = self.rsi_5min_fast.value
-                self.indicators.rsi_5min = self.rsi_5min.value
-                self.indicators.rsi_30min = self.rsi_30min.value
-                self.indicators.rsi_1h = self.rsi_1h.value
-                self.indicators.rsi_4h = self.rsi_4h.value
+                self.indicators_sell.rsi_5min_fast = self.rsi_5min_fast.value
+                self.indicators_sell.rsi_5min = self.rsi_5min.value
+                self.indicators_sell.rsi_30min = self.rsi_30min.value
+                self.indicators_sell.rsi_1h = self.rsi_1h.value
+                self.indicators_sell.rsi_4h = self.rsi_4h.value
                 return TradeType.SELL
         else:
             self.buy_triggered = False
@@ -135,15 +140,15 @@ class BotManager:
         if (profit_percentage < self.MIN_BUY_TAKE_PROFIT_PERCENTAGE):
             return
         if (highest_previous_price < max_take_profit_price):
-            self.trade.take_profit = highest_previous_price
-            self.trade.stop_loss = current_candle.close - \
+            self.trade_buy.take_profit = highest_previous_price
+            self.trade_buy.stop_loss = current_candle.close - \
                 ((highest_previous_price - current_candle.close) * 0.33)
-            if (self.trade.stop_loss < min_stop_loss_price):
-                self.trade.stop_loss = min_stop_loss_price
+            if (self.trade_buy.stop_loss < min_stop_loss_price):
+                self.trade_buy.stop_loss = min_stop_loss_price
             return {'position': TradeType.BUY, "profit_percentage": profit_percentage}
         if (highest_previous_price >= max_take_profit_price):
-            self.trade.take_profit = max_take_profit_price
-            self.trade.stop_loss = min_stop_loss_price
+            self.trade_buy.take_profit = max_take_profit_price
+            self.trade_buy.stop_loss = min_stop_loss_price
             return {'position': TradeType.BUY, "profit_percentage": profit_percentage}
 
     def get_sell_take_profit_and_stop_loss(self, current_candle: Candle, previous_candles: list[Candle]) -> dict | None:
@@ -163,15 +168,15 @@ class BotManager:
         if (profit_percentage < self.MIN_SELL_TAKE_PROFIT_PERCENTAGE):
             return
         if (lowest_previous_price > min_take_profit_price):
-            self.trade.take_profit = lowest_previous_price
-            self.trade.stop_loss = current_candle.close + \
+            self.trade_sell.take_profit = lowest_previous_price
+            self.trade_sell.stop_loss = current_candle.close + \
                 ((current_candle.close - lowest_previous_price) * 0.33)
-            if (self.trade.stop_loss > max_stop_loss_price):
-                self.trade.stop_loss = max_stop_loss_price
+            if (self.trade_sell.stop_loss > max_stop_loss_price):
+                self.trade_sell.stop_loss = max_stop_loss_price
             return {'position': TradeType.SELL, "profit_percentage": profit_percentage}
         if (lowest_previous_price <= min_take_profit_price):
-            self.trade.take_profit = min_take_profit_price
-            self.trade.stop_loss = max_stop_loss_price
+            self.trade_sell.take_profit = min_take_profit_price
+            self.trade_sell.stop_loss = max_stop_loss_price
             return {'position': TradeType.SELL, "profit_percentage": profit_percentage}
 
     def get_position_value(self) -> int:

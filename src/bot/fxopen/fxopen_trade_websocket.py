@@ -4,14 +4,16 @@ import json
 import websocket
 from threading import Thread
 from config.config_service import ConfigService
+from database.models.trade_model import TradeTypeValues
 from .fxopen_websocket_manager import FxOpenWebsocketManager
 from logger.logger_service import LoggerService
 
 
 @dataclass
 class BotServiceSharedTradeFunctions:
-    handle_canceled_trade_from_websocket: Callable[[str], None]
-    handle_closed_trade: Callable[[float, float, float, int], None]
+    # handle_canceled_trade_from_websocket: Callable[[str], None]
+    handle_closed_trade: Callable[[
+        TradeTypeValues, float, float, float, int], None]
     startup_data: Callable[[], None]
 
 
@@ -43,10 +45,10 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
         self.loggerService.log(f"received trade message: {parsed_message}")
 
         if (parsed_message['Response'] == 'ExecutionReport'):
-            if (parsed_message["Result"]["Event"] == 'Canceled'):
-                self.loggerService.log('trade canceled')
-                self.botService.handle_canceled_trade_from_websocket(
-                    parsed_message["Result"]["Trade"]["Id"])
+            # if (parsed_message["Result"]["Event"] == 'Canceled'):
+            #     self.loggerService.log('trade canceled')
+            #     self.botService.handle_canceled_trade_from_websocket(
+            #         parsed_message["Result"]["Trade"]["Id"])
 
             if ("Profit" in parsed_message["Result"] and parsed_message["Result"]["Event"] == 'Filled'):
                 self.loggerService.log('trade closed')
@@ -54,8 +56,9 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
                 close_price = parsed_message["Result"]["Trade"]["Price"]
                 closed_at = parsed_message["Result"]["Trade"]["Modified"]
                 comission = parsed_message["Result"]["Trade"]["Commission"]
+                side = parsed_message["Result"]["Trade"]["Side"]
                 self.botService.handle_closed_trade(
-                    profit, close_price, comission, closed_at)
+                    side, profit, close_price, comission, closed_at)
 
     def on_error(self, ws, error):
         self.loggerService.log(f'trade error: {error}')

@@ -82,9 +82,13 @@ class TradeModel:
         ), list(MongoDB.database[TABLE_NAME].find())))
 
     @staticmethod
-    def findLast():
-        tradeList = list(MongoDB.database[TABLE_NAME].find().sort(
-            'opened_at', -1).limit(1))
+    def findLast(type: TradeTypeValues | None):
+        if (type != None):
+            tradeList = list(MongoDB.database[TABLE_NAME].find(
+                {'type': type}).sort('opened_at', -1).limit(1))
+        else:
+            tradeList = list(MongoDB.database[TABLE_NAME].find().sort(
+                'opened_at', -1).limit(1))
 
         if (len(tradeList) == 0):
             return None
