@@ -22,6 +22,7 @@ class BotDev(BotManager):
     open_file_4h = pd.read_csv("data/formatted/EURUSD_4h.csv", chunksize=1)
     stdscr = curses.initscr()
     last_candle_processed_date = None
+    opened_both_side_count = 0
 
     def start(self):
         f = open("data/diff_to_high.txt", "w")
@@ -53,10 +54,12 @@ class BotDev(BotManager):
                     2, 0, f'Trade buy is closed: {self.trade_buy.is_closed}')
                 self.stdscr.addstr(
                     3, 0, f'Trade sell is closed: {self.trade_sell.is_closed}')
-                self.stdscr.addstr(4, 0, f'Max balance: {self.max_balance}')
-                self.stdscr.addstr(5, 0,
-                                   f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
+                self.stdscr.addstr(
+                    4, 0, f'Opened buy/sell trades at the same time: {self.opened_both_side_count}')
+                self.stdscr.addstr(5, 0, f'Max balance: {self.max_balance}')
                 self.stdscr.addstr(6, 0,
+                                   f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
+                self.stdscr.addstr(7, 0,
                                    f'Max drawdown: {self.max_drawdown}%')
                 try:
                     candle_5min = self.set_candles_list(candle_5min)
@@ -69,7 +72,7 @@ class BotDev(BotManager):
                         self.set_all_rsi()
                     if (self.rsi_5min.value != 0 and self.rsi_30min.value != 0 and self.rsi_1h.value != 0 and self.rsi_4h.value != 0):
                         self.test_strategy()
-                    self.stdscr.addstr(7, 0, '----------')
+                    self.stdscr.addstr(8, 0, '----------')
                     self.stdscr.refresh()
             curses.endwin()
             print('\n----- Backtest done -----\n')
@@ -77,6 +80,8 @@ class BotDev(BotManager):
             print(f'Balance: {self.balance}')
             print(f'Trade buy is closed: {self.trade_buy.is_closed}')
             print(f'Trade sell is closed: {self.trade_sell.is_closed}')
+            print(
+                f'Opened buy/sell trades at the same time: {self.opened_both_side_count}')
             print(f'Max balance: {self.max_balance}')
             print(
                 f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
@@ -94,7 +99,7 @@ class BotDev(BotManager):
                 candle_5min.start_timestamp / 1000, tz=timezone.utc)
             diff_minutes = (current_candle_5min_start_date -
                             last_candle_5min_start_date).total_seconds() / 60
-            if (diff_minutes >= 10 and current_candle_5min_start_date.hour != 23 and current_candle_5min_start_date.hour != 0):
+            if (diff_minutes > 10 and current_candle_5min_start_date.hour != 23 and current_candle_5min_start_date.hour != 0):
                 # print('## Difference minutes too high, drop all candles list ##')
                 f = open("data/diff_to_high.txt", "a")
                 f.write(
@@ -176,6 +181,9 @@ class BotDev(BotManager):
             self.indicators_sell.type = self.trade_sell.type
             self.indicators_sell.trade_id = self.trade_sell._id
             self.indicators_sell.save()
+
+        if (self.trade_buy.is_closed == False and self.trade_sell.is_closed == False):
+            self.opened_both_side_count += 1
 
     def check_to_close_trade(self, trade: TradeModel, indicators: IndicatorsModel, custom_close: str | None):
         fees_amount = trade.position_value * self.FEES * 2
