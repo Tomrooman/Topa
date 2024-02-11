@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from bson import ObjectId
-from dateutil import relativedelta
 import pandas as pd
+import json
 import curses
 import sys  # NOQA
 import os  # NOQA
@@ -11,6 +11,7 @@ from bot.bot_manager import BotManager
 from database.models.trade_model import TradeModel, TradeType, TradeTypeValues
 from database.models.indicators_model import IndicatorsModel
 from bot.candle import Candle, create_from_csv_line
+from api.routes.stats.stats_service import StatsService
 
 
 class BotDev(BotManager):
@@ -75,8 +76,19 @@ class BotDev(BotManager):
                     self.stdscr.addstr(8, 0, '----------')
                     self.stdscr.refresh()
             curses.endwin()
+            stats = json.loads(StatsService().handle_route())
+            total_trades = TradeModel.findAll()
+            losing_months = stats["analytics"]["losingMonths"]
+            time_to_comeback = stats["timeToComeback"]
+            time_to_comback_in_row = max(
+                [time["losingMonthsCount"] for time in time_to_comeback])
+            higher_losing_months_percentage = max(
+                [abs(month["percentage_from_balance"]) for month in losing_months])
+            max_losing_month_in_row = max(
+                [month["inRow"] for month in losing_months])
             print('\n----- Backtest done -----\n')
             print(f'Candle start date: {self.last_candle_processed_date}')
+            print(f'Total trades: {len(total_trades)}')
             print(f'Balance: {self.balance}')
             print(f'Trade buy is closed: {self.trade_buy.is_closed}')
             print(f'Trade sell is closed: {self.trade_sell.is_closed}')
@@ -86,6 +98,12 @@ class BotDev(BotManager):
             print(
                 f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
             print(f'Max drawdown: {self.max_drawdown}%')
+            print(f'Losing months length: {len(losing_months)}')
+            print(f'Max losing months in a row: {max_losing_month_in_row}')
+            print(
+                f'Higher loss in one month: {higher_losing_months_percentage}%')
+            print(f'Time to comeback length: {len(time_to_comeback)}')
+            print(f'Time to comeback in a row: {time_to_comback_in_row}')
             print('\n')
         except KeyboardInterrupt:
             curses.endwin()

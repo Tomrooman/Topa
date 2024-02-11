@@ -210,9 +210,11 @@ class StatsService:
         if (len(currentLosing) > 0):
             losing_months_profit = sum(
                 map(lambda month: month.profit, currentLosing))
+            losing_months_percentage = sum(
+                map(lambda month: month.percentage_from_balance, currentLosing))
             losingMonths = LosingMonths(count=len(currentLosing),
                                         profit=losing_months_profit,
-                                        months=currentLosing, percentage_from_balance=round((losing_months_profit / (current_balance - yearDict[-1].profit)) * 100, 4))
+                                        months=currentLosing, percentage_from_balance=losing_months_percentage)
             analytic.losingMonths.append(losingMonths)
             if (currentTimeToComeback is not None):
                 timeToComeback.append(currentTimeToComeback)
