@@ -100,8 +100,6 @@ class BotProd(BotManager):
             self.indicators_buy.trade_id = new_trade_id
             self.indicators_buy.save()
             self.trade_buy.save()
-            self.loggerService.log(
-                f'trade buy is closed: {self.trade_buy.is_closed}')
         elif (position == TradeType.SELL):
             fxopen_trade = self.fxopenApi.create_trade(
                 side=position, amount=position_value, stop_loss=self.trade_sell.stop_loss, take_profit=self.trade_sell.take_profit, comment=new_trade_id)
@@ -111,8 +109,11 @@ class BotProd(BotManager):
             self.indicators_sell.trade_id = new_trade_id
             self.indicators_sell.save()
             self.trade_sell.save()
-            self.loggerService.log(
-                f'trade sell is closed: {self.trade_sell.is_closed}')
+
+        self.loggerService.log(
+            f'trade buy is closed: {self.trade_buy.is_closed}')
+        self.loggerService.log(
+            f'trade sell is closed: {self.trade_sell.is_closed}')
         self.loggerService.log(f'buy triggered: {self.buy_triggered}')
         self.loggerService.log(f'sell triggered: {self.sell_triggered}')
 
