@@ -89,22 +89,23 @@ class BotDev(BotManager):
                 self.candles_5min_list[-1].start_timestamp / 1000, tz=timezone.utc)
             current_candle_5min_start_date = datetime.fromtimestamp(
                 candle_5min.start_timestamp / 1000, tz=timezone.utc)
-            difference = relativedelta.relativedelta(
-                current_candle_5min_start_date, last_candle_5min_start_date)
-            if (difference.minutes > 10 and current_candle_5min_start_date.hour != 23 and current_candle_5min_start_date.minute != 40 and current_candle_5min_start_date.hour != 0):
+            diff_minutes = (current_candle_5min_start_date -
+                            last_candle_5min_start_date).total_seconds() / 60
+            if (diff_minutes >= 10 and current_candle_5min_start_date.hour != 23 and current_candle_5min_start_date.hour != 0):
                 # print('## Difference minutes too high, drop all candles list ##')
                 f = open("data/diff_to_high.txt", "a")
                 f.write(
-                    f"Difference minutes too high, drop all candles list\n{last_candle_5min_start_date.isoformat()}\n{current_candle_5min_start_date.isoformat()}\n\n")
+                    f"Difference minutes too high, drop all candles list\n{last_candle_5min_start_date.isoformat()}\n{current_candle_5min_start_date.isoformat()}\ndiff minutes:{diff_minutes}\n\n")
                 f.close()
                 self.candles_5min_list = []
                 self.candles_30min_list = []
-                self.candles_1h_list = []
-                self.candles_4h_list = []
                 self.rsi_5min.value = 0
                 self.rsi_30min.value = 0
-                self.rsi_1h.value = 0
-                self.rsi_4h.value = 0
+                if (diff_minutes >= 20):
+                    self.candles_1h_list = []
+                    self.candles_4h_list = []
+                    self.rsi_1h.value = 0
+                    self.rsi_4h.value = 0
             if (current_candle_5min_start_date.minute == 0 or current_candle_5min_start_date.minute == 30):
                 self.candles_30min_list.append(create_from_csv_line(
                     self.open_file_30min.get_chunk().values[0]))
