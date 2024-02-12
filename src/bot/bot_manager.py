@@ -106,19 +106,19 @@ class BotManager:
                       self.rsi_1h.value, self.rsi_4h.value)
         previous_candles = self.candles_5min_list[-self.CANDLES_HISTORY_LENGTH:]
         if (self.buy_triggered == True):
-            if (self.rsi_5min.value <= 40):
+            if (self.rsi_5min.value >= 30):
                 self.buy_triggered = False
                 return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
         elif (self.sell_triggered == True):
-            if (self.rsi_5min.value >= 60):
+            if (self.rsi_5min.value <= 70):
                 self.sell_triggered = False
                 return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
 
-        if (min_rsi == self.rsi_5min_fast.value and self.rsi_5min_fast.value <= 30 and self.rsi_30min.value < self.rsi_4h.value and self.rsi_1h.value < self.rsi_4h.value):  # BUY
+        if (self.trade_buy.is_closed == True and min_rsi == self.rsi_5min_fast.value and self.rsi_5min_fast.value <= 30 and self.rsi_30min.value < self.rsi_4h.value and self.rsi_1h.value < self.rsi_4h.value):  # BUY
             # return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
             self.buy_triggered = True
             self.sell_triggered = False
-        elif (max_rsi == self.rsi_5min_fast.value and self.rsi_5min_fast.value >= 70 and self.rsi_30min.value > self.rsi_4h.value and self.rsi_1h.value > self.rsi_4h.value):  # SELL
+        elif (self.trade_sell.is_closed == True and max_rsi == self.rsi_5min_fast.value and self.rsi_5min_fast.value >= 70 and self.rsi_30min.value > self.rsi_4h.value and self.rsi_1h.value > self.rsi_4h.value):  # SELL
             # return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
             self.sell_triggered = True
             self.buy_triggered = False
