@@ -52,9 +52,9 @@ class BotDev(BotManager):
                     0, 0, f'Candle start date: {candle_5min_start_date}')
                 self.stdscr.addstr(1, 0, f'Balance: {self.balance}')
                 self.stdscr.addstr(
-                    2, 0, f'Trade buy is closed: {self.trade_buy.is_closed}')
+                    2, 0, f'Trade buy is open: {not self.trade_buy.is_closed}')
                 self.stdscr.addstr(
-                    3, 0, f'Trade sell is closed: {self.trade_sell.is_closed}')
+                    3, 0, f'Trade sell is open: {not self.trade_sell.is_closed}')
                 self.stdscr.addstr(
                     4, 0, f'Opened buy/sell trades at the same time: {self.opened_both_side_count}')
                 self.stdscr.addstr(5, 0, f'Max balance: {self.max_balance}')
@@ -90,8 +90,8 @@ class BotDev(BotManager):
             print(f'Candle start date: {self.last_candle_processed_date}')
             print(f'Total trades: {len(total_trades)}')
             print(f'Balance: {self.balance}')
-            print(f'Trade buy is closed: {self.trade_buy.is_closed}')
-            print(f'Trade sell is closed: {self.trade_sell.is_closed}')
+            print(f'Trade buy is open: {not self.trade_buy.is_closed}')
+            print(f'Trade sell is open: {not self.trade_sell.is_closed}')
             print(
                 f'Opened buy/sell trades at the same time: {self.opened_both_side_count}')
             print(f'Max balance: {self.max_balance}')

@@ -77,9 +77,9 @@ class BotProd(BotManager):
         position = self.check_strategy()
         if (position == 'Idle'):
             self.loggerService.log(
-                f'trade buy is closed: {self.trade_buy.is_closed}')
+                f'trade buy is open: {not self.trade_buy.is_closed}')
             self.loggerService.log(
-                f'trade sell is closed: {self.trade_sell.is_closed}')
+                f'trade sell is open: {not self.trade_sell.is_closed}')
             self.loggerService.log(f'buy triggered: {self.buy_triggered}')
             self.loggerService.log(f'sell triggered: {self.sell_triggered}')
             return
@@ -111,9 +111,9 @@ class BotProd(BotManager):
             self.trade_sell.save()
 
         self.loggerService.log(
-            f'trade buy is closed: {self.trade_buy.is_closed}')
+            f'trade buy is open: {not self.trade_buy.is_closed}')
         self.loggerService.log(
-            f'trade sell is closed: {self.trade_sell.is_closed}')
+            f'trade sell is open: {not self.trade_sell.is_closed}')
         self.loggerService.log(f'buy triggered: {self.buy_triggered}')
         self.loggerService.log(f'sell triggered: {self.sell_triggered}')
 
