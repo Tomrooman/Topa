@@ -165,6 +165,7 @@ class StatsService:
         timeToComeback: list[TimeToComeback] = []
         currentTimeToComeback = None
         currentLosing = []
+        currentLosingYear = None
         for year in yearDict:
             for month in year.months:
 
@@ -176,10 +177,11 @@ class StatsService:
                 month.percentage_from_balance = round(
                     (month.profit / current_balance_month) * 100, 4)
                 current_balance_month += month.profit
-
                 if (month.profit < 0):
                     currentLoss += month.profit
-                    if (len(currentLosing) >= 1 and currentLosing[-1].value + 1 != month.value and (month.value != 1 or currentLosing[-1].value != 12)):
+                    if (len(currentLosing) == 0 or (len(currentLosing) >= 1 and currentLosing[-1].value + 1 == month.value and currentLosingYear == year.value) or (len(currentLosing) >= 1 and month.value == 1 and currentLosing[-1].value == 12 and currentLosingYear == year.value - 1)):
+                        currentLosing.append(month)
+                    else:
                         losing_months_profit = sum(
                             map(lambda month: month.profit, currentLosing))
                         losing_months_percentage = sum(
@@ -192,8 +194,8 @@ class StatsService:
                         analytic.losingMonths.append(losingMonths)
                         currentLosing = [month]
 
-                    if (len(currentLosing) == 0 or (len(currentLosing) >= 1 and currentLosing[-1].value + 1 == month.value) or (len(currentLosing) >= 1 and month.value == 1 and currentLosing[-1].value == 12)):
-                        currentLosing.append(month)
+                    currentLosingYear = year.value
+
                 if (currentLoss < 0 and month.profit > 0):
                     currentLoss += month.profit
                 if (currentLoss < 0):
