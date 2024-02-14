@@ -158,7 +158,9 @@ class StatsService:
     def calcul_stats(self, trades: list[TradeModel], yearDict: list[YearDict]):
         analytic = Analytic(totalTrades=len(trades),
                             losingMonths=[])
-        current_balance = 2000
+        current_balance_year = 2000
+        current_balance_month = 2000
+        current_balance_day = 2000
         currentLoss = 0
         timeToComeback: list[TimeToComeback] = []
         currentTimeToComeback = None
@@ -168,10 +170,12 @@ class StatsService:
 
                 for day in month.days:
                     day.percentage_from_balance = round(
-                        (day.profit / current_balance) * 100, 4)
+                        (day.profit / current_balance_day) * 100, 4)
+                    current_balance_day += day.profit
 
                 month.percentage_from_balance = round(
-                    (month.profit / current_balance) * 100, 4)
+                    (month.profit / current_balance_month) * 100, 4)
+                current_balance_month += month.profit
 
                 if (month.profit < 0):
                     currentLoss += month.profit
@@ -204,8 +208,8 @@ class StatsService:
                     currentLoss = 0
 
             year.percentage_from_balance = round(
-                (year.profit / current_balance) * 100, 4)
-            current_balance += year.profit
+                (year.profit / current_balance_year) * 100, 4)
+            current_balance_year += year.profit
 
         if (len(currentLosing) > 0):
             losing_months_profit = sum(
