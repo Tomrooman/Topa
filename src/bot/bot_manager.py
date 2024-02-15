@@ -30,19 +30,24 @@ class BotManager:
     MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.004
     MAX_LOSS_PERCENTAGE = 0.0015
 
+    START_TRADE_HOUR = 4
+    END_TRADE_HOUR = 19
+    START_CUSTOM_CLOSE_HOUR = 20
+    END_CUSTOM_CLOSE_HOUR = 21
+
     balance: float = 2000
     max_balance: float = balance
     max_drawdown: float = 0
     current_drawdown: float = 0
-    trade_buy = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value=0, status='New',
-                           take_profit=0, stop_loss=0, type=TradeType(TradeType.BUY), close=0, profit=0, comission=0,
+    trade_buy = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value='0', status='New',
+                           take_profit=0, stop_loss=0, type=TradeType(TradeType.BUY), close=0, profit='0', comission=0,
                            fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='')
-    trade_sell = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value=0, status='New',
-                            take_profit=0, stop_loss=0, type=TradeType(TradeType.SELL), close=0, profit=0, comission=0,
+    trade_sell = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value='0', status='New',
+                            take_profit=0, stop_loss=0, type=TradeType(TradeType.SELL), close=0, profit='0', comission=0,
                             fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='')
-    indicators_buy = IndicatorsModel(_id=ObjectId(), trade_id=trade_buy._id, profit=0, type=TradeType(TradeType.BUY),
+    indicators_buy = IndicatorsModel(_id=ObjectId(), trade_id=trade_buy._id, profit='0', type=TradeType(TradeType.BUY),
                                      rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0)
-    indicators_sell = IndicatorsModel(_id=ObjectId(), trade_id=trade_buy._id, profit=0, type=TradeType(TradeType.SELL),
+    indicators_sell = IndicatorsModel(_id=ObjectId(), trade_id=trade_buy._id, profit='0', type=TradeType(TradeType.SELL),
                                       rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0)
     rsi_5min = RsiData(value=0, period=14)
     rsi_5min_fast = RsiData(value=0, period=7)
@@ -68,7 +73,7 @@ class BotManager:
     def check_strategy(self) -> Literal[TradeTypeValues, 'Idle']:
         current_candle = self.get_last_candle()
         closed_hour = self.get_close_date_from_candle(current_candle).hour
-        if (closed_hour >= 7 and closed_hour <= 19):
+        if (closed_hour >= self.START_TRADE_HOUR and closed_hour <= self.END_TRADE_HOUR):
             position = self.get_position_with_tp_and_sl(current_candle)
             if (
                 position is not None and position['position'] == TradeType.BUY
@@ -94,9 +99,9 @@ class BotManager:
     def check_for_custom_close(self) -> Literal['close_profit', 'force_close'] | None:
         last_candle = self.get_last_candle()
         closed_hour = self.get_close_date_from_candle(last_candle).hour
-        if (closed_hour >= 20 and closed_hour < 21):
+        if (closed_hour >= self.START_CUSTOM_CLOSE_HOUR and closed_hour < self.END_CUSTOM_CLOSE_HOUR):
             return 'close_profit'
-        if (closed_hour >= 21 or closed_hour < 7):
+        if (closed_hour >= self.END_CUSTOM_CLOSE_HOUR or closed_hour < self.START_TRADE_HOUR):
             return 'force_close'
 
     def get_position_with_tp_and_sl(self, current_candle: Candle) -> dict | None:
@@ -114,11 +119,23 @@ class BotManager:
                 self.sell_triggered = False
                 return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
 
-        if (self.trade_buy.is_closed == True and min_rsi == self.rsi_5min_fast.value and self.rsi_5min.value <= 40 and self.rsi_30min.value < self.rsi_4h.value and self.rsi_1h.value < self.rsi_4h.value and current_candle.close <= current_candle.open):  # BUY
+        if (self.trade_buy.is_closed == True
+                and min_rsi == self.rsi_5min_fast.value
+                and self.rsi_5min.value <= 40
+                and self.rsi_30min.value < self.rsi_4h.value
+                and self.rsi_1h.value < self.rsi_4h.value
+                # and current_candle.close <= current_candle.open
+            ):  # BUY
             # return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
             self.buy_triggered = True
             self.sell_triggered = False
-        elif (self.trade_sell.is_closed == True and max_rsi == self.rsi_5min_fast.value and self.rsi_5min.value >= 60 and self.rsi_30min.value > self.rsi_4h.value and self.rsi_1h.value > self.rsi_4h.value and current_candle.close >= current_candle.open):  # SELL
+        elif (self.trade_sell.is_closed == True
+                and max_rsi == self.rsi_5min_fast.value
+                and self.rsi_5min.value >= 60
+                and self.rsi_30min.value > self.rsi_4h.value
+                and self.rsi_1h.value > self.rsi_4h.value
+                # and current_candle.close >= current_candle.open
+              ):  # SELL
             # return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
             self.sell_triggered = True
             self.buy_triggered = False
@@ -188,7 +205,8 @@ class BotManager:
             raise Exception(
                 f'No enough balance to open a trade {self.balance}')
 
-        return int(math.floor(((self.balance * self.LEVERAGE) / min_trade_price)) * min_trade_price)
+        return int(math.floor(
+            ((self.balance * self.LEVERAGE) / min_trade_price)) * min_trade_price)
 
     def set_drawdown(self):
         if (self.balance > self.max_balance):

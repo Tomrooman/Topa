@@ -29,12 +29,12 @@ class TradeModel:
     price: float
     status: Literal['New', 'Calculated', 'Filled', 'Canceled', 'Rejected',
                     'Expired', 'PartiallyFilled', 'Activated', 'Executing', 'Invalid']
-    position_value: float
+    position_value: str
     take_profit: float
     stop_loss: float
     type: TradeType
     close: float
-    profit: float
+    profit: str
     comission: float
     fxopen_id: str
     opened_at_timestamp: int

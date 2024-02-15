@@ -13,7 +13,7 @@ class IndicatorsModel:
     _id: ObjectId
     trade_id: ObjectId
     type: TradeType
-    profit: float
+    profit: str
     rsi_5min: float
     rsi_5min_fast: float
     rsi_30min: float

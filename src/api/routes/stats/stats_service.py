@@ -149,9 +149,9 @@ class StatsService:
                 existingMonth.days.append(existingDay)
             else:
                 existingDay.trades.append(trade)
-            existingDay.profit += trade.profit
-            existingMonth.profit += trade.profit
-            existingYear.profit += trade.profit
+            existingDay.profit += float(trade.profit)
+            existingMonth.profit += float(trade.profit)
+            existingYear.profit += float(trade.profit)
 
         return yearDict
 

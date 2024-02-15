@@ -164,6 +164,9 @@ class BotDev(BotManager):
                 self.trade_sell, self.indicators_sell, custom_close)
             # return DO NOT RETURN HERE BECAUSE TRADE CAN BE CLOSED WHILE CANDLE IS NOT CLOSED
 
+        if (len(self.candles_5min_list) < self.CANDLES_HISTORY_LENGTH):
+            return
+
         if (self.trade_buy.is_closed == True or self.trade_sell.is_closed == True):
             position = self.check_strategy()
 
@@ -183,7 +186,7 @@ class BotDev(BotManager):
             self.trade_buy.opened_at = datetime.fromtimestamp(
                 current_candle.start_timestamp / 1000, tz=timezone.utc).isoformat()
             self.trade_buy.type = TradeType(side)
-            self.trade_buy.position_value = self.get_position_value()
+            self.trade_buy.position_value = str(self.get_position_value())
             self.indicators_buy._id = ObjectId()
             self.indicators_buy.type = self.trade_buy.type
             self.indicators_buy.trade_id = self.trade_buy._id
@@ -194,7 +197,7 @@ class BotDev(BotManager):
             self.trade_sell.opened_at = datetime.fromtimestamp(
                 current_candle.start_timestamp / 1000, tz=timezone.utc).isoformat()
             self.trade_sell.type = TradeType(side)
-            self.trade_sell.position_value = self.get_position_value()
+            self.trade_sell.position_value = str(self.get_position_value())
             self.indicators_sell._id = ObjectId()
             self.indicators_sell.type = self.trade_sell.type
             self.indicators_sell.trade_id = self.trade_sell._id
@@ -204,20 +207,20 @@ class BotDev(BotManager):
             self.opened_both_side_count += 1
 
     def check_to_close_trade(self, trade: TradeModel, indicators: IndicatorsModel, custom_close: str | None):
-        fees_amount = trade.position_value * self.FEES * 2
+        fees_amount = int(trade.position_value) * self.FEES * 2
         trade.comission = fees_amount
         current_candle = self.get_last_candle()
         closed_date = self.get_close_date_from_candle(current_candle)
         # Loss
         if ((trade.type.value == TradeType.SELL and current_candle.high >= trade.stop_loss) or (trade.type.value == TradeType.BUY and current_candle.low <= trade.stop_loss)):
             diff_price_amount = abs(trade.stop_loss - trade.price)
-            loss_amount = trade.position_value * \
+            loss_amount = int(trade.position_value) * \
                 (diff_price_amount / trade.price)
             final_profit = loss_amount + fees_amount
-            indicators.profit = -final_profit
+            indicators.profit = str(-final_profit)
             self.balance -= final_profit
             trade.close = trade.stop_loss
-            trade.profit = -final_profit
+            trade.profit = str(-final_profit)
             trade.closed_at = closed_date.isoformat()
             # Save into database
             trade.is_closed = True
@@ -228,13 +231,13 @@ class BotDev(BotManager):
         # Profit
         elif ((trade.type.value == TradeType.SELL and current_candle.low <= trade.take_profit) or (trade.type.value == TradeType.BUY and current_candle.high >= trade.take_profit)):
             diff_price_amount = abs(trade.take_profit - trade.price)
-            profit_amount = trade.position_value * \
+            profit_amount = int(trade.position_value) * \
                 (diff_price_amount / trade.price)
             final_profit = profit_amount - fees_amount
-            indicators.profit = final_profit
+            indicators.profit = str(final_profit)
             self.balance += final_profit
             trade.close = trade.take_profit
-            trade.profit = final_profit
+            trade.profit = str(final_profit)
             trade.closed_at = closed_date.isoformat()
             # Save into database
             trade.is_closed = True
@@ -245,13 +248,13 @@ class BotDev(BotManager):
 
         elif (custom_close == 'close_profit'):
             diff_price_amount = abs(current_candle.close - trade.price)
-            trade_profit = trade.position_value * \
+            trade_profit = int(trade.position_value) * \
                 (diff_price_amount / trade.price)
             if ((trade.type.value == TradeType.SELL and current_candle.close <= trade.price) or (trade.type.value == TradeType.BUY and current_candle.close >= trade.price)):
                 final_profit = trade_profit - fees_amount
                 self.balance += final_profit
-                indicators.profit = final_profit
-                trade.profit = final_profit
+                indicators.profit = str(final_profit)
+                trade.profit = str(final_profit)
                 trade.close = current_candle.close
                 trade.closed_at = closed_date.isoformat()
                 # Save into database
@@ -262,18 +265,18 @@ class BotDev(BotManager):
                 self.set_drawdown()
         elif (custom_close == 'force_close'):
             diff_price_amount = abs(current_candle.close - trade.price)
-            trade_profit = trade.position_value * \
+            trade_profit = int(trade.position_value) * \
                 (diff_price_amount / trade.price)
             if ((trade.type.value == TradeType.SELL and current_candle.close <= trade.price) or (trade.type.value == TradeType.BUY and current_candle.close >= trade.price)):
                 final_profit = trade_profit - fees_amount
                 self.balance += final_profit
-                trade.profit = final_profit
-                indicators.profit = final_profit
+                trade.profit = str(final_profit)
+                indicators.profit = str(final_profit)
             if ((trade.type.value == TradeType.SELL and current_candle.close >= trade.price) or (trade.type.value == TradeType.BUY and current_candle.close <= trade.price)):
                 final_profit = trade_profit + fees_amount
                 self.balance -= final_profit
-                trade.profit = -trade_profit
-                indicators.profit = -trade_profit
+                trade.profit = str(-trade_profit)
+                indicators.profit = str(-trade_profit)
             trade.close = current_candle.close
             trade.closed_at = closed_date.isoformat()
             # Save into database

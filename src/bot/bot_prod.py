@@ -164,8 +164,8 @@ class BotProd(BotManager):
             self.trade_buy.is_closed = True
             self.trade_buy.closed_at = datetime.fromtimestamp(
                 closed_at_timestamp / 1000, tz=timezone.utc).isoformat()
-            self.trade_buy.profit = trade_profit
-            self.indicators_buy.profit = trade_profit
+            self.trade_buy.profit = str(trade_profit)
+            self.indicators_buy.profit = str(trade_profit)
             self.trade_buy.close = close_price
             self.trade_buy.comission = comission
             self.trade_buy.save()
@@ -174,8 +174,8 @@ class BotProd(BotManager):
             self.trade_sell.is_closed = True
             self.trade_sell.closed_at = datetime.fromtimestamp(
                 closed_at_timestamp / 1000, tz=timezone.utc).isoformat()
-            self.trade_sell.profit = trade_profit
-            self.indicators_sell.profit = trade_profit
+            self.trade_sell.profit = str(trade_profit)
+            self.indicators_sell.profit = str(trade_profit)
             self.trade_sell.close = close_price
             self.trade_sell.comission = comission
             self.trade_sell.save()
