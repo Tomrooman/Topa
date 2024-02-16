@@ -124,7 +124,6 @@ class BotManager:
                 and self.rsi_5min.value <= 40
                 and self.rsi_30min.value < self.rsi_4h.value
                 and self.rsi_1h.value < self.rsi_4h.value
-                # and current_candle.close <= current_candle.open
             ):  # BUY
             # return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
             self.buy_triggered = True
@@ -134,7 +133,6 @@ class BotManager:
                 and self.rsi_5min.value >= 60
                 and self.rsi_30min.value > self.rsi_4h.value
                 and self.rsi_1h.value > self.rsi_4h.value
-                # and current_candle.close >= current_candle.open
               ):  # SELL
             # return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
             self.sell_triggered = True
