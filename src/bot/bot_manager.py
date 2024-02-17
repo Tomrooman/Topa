@@ -51,7 +51,7 @@ class BotManager:
                                       rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0)
     rsi_5min = RsiData(value=0, period=14)
     rsi_5min_fast = RsiData(value=0, period=7)
-    rsi_30min = RsiData(value=0, period=14)
+    rsi_30min = RsiData(value=0, period=7)
     rsi_1h = RsiData(value=0, period=14)
     rsi_4h = RsiData(value=0, period=7)
 
