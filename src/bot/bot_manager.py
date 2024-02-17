@@ -157,7 +157,7 @@ class BotManager:
         if (highest_previous_price < max_take_profit_price):
             self.trade_buy.take_profit = highest_previous_price
             self.trade_buy.stop_loss = current_candle.close - \
-                ((highest_previous_price - current_candle.close) * 0.5)
+                ((highest_previous_price - current_candle.close) * 0.33)
             if (self.trade_buy.stop_loss < min_stop_loss_price):
                 self.trade_buy.stop_loss = min_stop_loss_price
             return {'position': TradeType.BUY, "profit_percentage": profit_percentage}
@@ -185,7 +185,7 @@ class BotManager:
         if (lowest_previous_price > min_take_profit_price):
             self.trade_sell.take_profit = lowest_previous_price
             self.trade_sell.stop_loss = current_candle.close + \
-                ((current_candle.close - lowest_previous_price) * 0.5)
+                ((current_candle.close - lowest_previous_price) * 0.33)
             if (self.trade_sell.stop_loss > max_stop_loss_price):
                 self.trade_sell.stop_loss = max_stop_loss_price
             return {'position': TradeType.SELL, "profit_percentage": profit_percentage}

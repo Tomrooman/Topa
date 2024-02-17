@@ -3,7 +3,7 @@ import os
 
 
 class LoggerService:
-    def log(self, message: str):
+    def log(self, message: str, show_datetime: bool = True, file_endline: str = '\n\n', print_endline: str = '\n\n'):
         now = datetime.now(tz=timezone.utc)
         log_filename = f"{now.strftime('%Y-%m-%d')}.txt"
         log_file_path = f"logs/{log_filename}"
@@ -13,8 +13,14 @@ class LoggerService:
             f.write("")
             f.close()
 
+        print_message = f"{now.isoformat()}: {message}"
+        file_message = f"{print_message}\n\n"
+
+        if (show_datetime == False):
+            print_message = message
+            file_message = f"{print_message}{file_endline}"
+
         f = open(log_file_path, "a")
-        f.write(
-            f"{now.isoformat()}: {message}\n\n")
+        f.write(file_message)
         f.close()
-        print(f'{now.isoformat()}: {message}')
+        print(print_message + print_endline)

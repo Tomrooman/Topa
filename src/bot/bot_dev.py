@@ -12,9 +12,11 @@ from database.models.trade_model import TradeModel, TradeType, TradeTypeValues
 from database.models.indicators_model import IndicatorsModel
 from bot.candle import Candle, create_from_csv_line
 from api.routes.stats.stats_service import StatsService
+from logger.logger_service import LoggerService
 
 
 class BotDev(BotManager):
+    loggerService = LoggerService()
     open_file_5min = pd.read_csv(
         "data/formatted/EURUSD_5min.csv", chunksize=1)
     open_file_30min = pd.read_csv(
@@ -22,17 +24,22 @@ class BotDev(BotManager):
     open_file_1h = pd.read_csv("data/formatted/EURUSD_1h.csv", chunksize=1)
     open_file_4h = pd.read_csv("data/formatted/EURUSD_4h.csv", chunksize=1)
     stdscr = curses.initscr()
-    last_candle_processed_date = None
     opened_both_side_count = 0
 
     last_candle_5min_minute = 0
     last_candle_5min_hour = 0
     last_candle_5min_day = 0
 
+    candle_5min_start_date = None
+    candle_30min_start_date = None
+    candle_1h_start_date = None
+    candle_4h_start_date = None
+
     def start(self):
         f = open("data/diff_to_high.txt", "w")
         f.write("")
         f.close()
+
         self.stdscr.clear()
         # Drop trades table
         TradeModel.drop_table()
@@ -49,69 +56,122 @@ class BotDev(BotManager):
 
         try:
             while (candle_5min != None):
-                candle_5min_start_date = datetime.fromtimestamp(
+                self.candle_5min_start_date = datetime.fromtimestamp(
                     candle_5min.start_timestamp / 1000, tz=timezone.utc)
+                try:
+                    self.candle_30min_start_date = datetime.fromtimestamp(
+                        self.candles_30min_list[-1].start_timestamp / 1000, tz=timezone.utc)
+                except:
+                    self.candle_30min_start_date = None
+
+                try:
+                    self.candle_1h_start_date = datetime.fromtimestamp(
+                        self.candles_1h_list[-1].start_timestamp / 1000, tz=timezone.utc)
+                except:
+                    self.candle_1h_start_date = None
+
+                try:
+                    self.candle_4h_start_date = datetime.fromtimestamp(
+                        self.candles_4h_list[-1].start_timestamp / 1000, tz=timezone.utc)
+                except:
+                    self.candle_4h_start_date = None
+
                 self.stdscr.clear()
                 self.stdscr.addstr(
-                    0, 0, f'Candle start date: {candle_5min_start_date}')
-                self.stdscr.addstr(1, 0, f'Balance: {self.balance}')
+                    0, 0, f'Candle 5m start date: {self.candle_5min_start_date}')
                 self.stdscr.addstr(
-                    2, 0, f'Trade buy is open: {not self.trade_buy.is_closed}')
+                    1, 0, f'Candle 30m start date: {self.candle_30min_start_date}')
                 self.stdscr.addstr(
-                    3, 0, f'Trade sell is open: {not self.trade_sell.is_closed}')
+                    2, 0, f'Candle 1h start date: {self.candle_1h_start_date}')
                 self.stdscr.addstr(
-                    4, 0, f'Opened buy/sell trades at the same time: {self.opened_both_side_count}')
-                self.stdscr.addstr(5, 0, f'Max balance: {self.max_balance}')
-                self.stdscr.addstr(6, 0,
+                    3, 0, f'Candle 4h start date: {self.candle_4h_start_date}')
+                self.stdscr.addstr(4, 0, f'Balance: {self.balance}')
+                self.stdscr.addstr(
+                    5, 0, f'Trade buy is open: {not self.trade_buy.is_closed}')
+                self.stdscr.addstr(
+                    6, 0, f'Trade sell is open: {not self.trade_sell.is_closed}')
+                self.stdscr.addstr(
+                    7, 0, f'Opened buy/sell trades at the same time: {self.opened_both_side_count}')
+                self.stdscr.addstr(8, 0, f'Max balance: {self.max_balance}')
+                self.stdscr.addstr(9, 0,
                                    f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
-                self.stdscr.addstr(7, 0,
+                self.stdscr.addstr(10, 0,
                                    f'Max drawdown: {self.max_drawdown}%')
                 try:
                     candle_5min = self.set_candles_list(candle_5min)
-                    self.last_candle_processed_date = candle_5min_start_date
                 except Exception as e:
                     candle_5min = None
                     continue
                 else:
-                    if (len(self.candles_5min_list) >= 14 and len(self.candles_30min_list) >= 14 and len(self.candles_1h_list) >= 14 and len(self.candles_4h_list) >= 7):
+                    if (len(self.candles_5min_list) >= self.rsi_5min.period and len(self.candles_30min_list) >= self.rsi_30min.period and len(self.candles_1h_list) >= self.rsi_1h.period and len(self.candles_4h_list) >= self.rsi_4h.period):
                         self.set_all_rsi()
                     if (self.rsi_5min.value != 0 and self.rsi_30min.value != 0 and self.rsi_1h.value != 0 and self.rsi_4h.value != 0):
                         self.test_strategy()
-                    self.stdscr.addstr(8, 0, '----------')
+                    self.stdscr.addstr(11, 0, '----------')
                     self.stdscr.refresh()
             curses.endwin()
-            stats = json.loads(StatsService().handle_route())
-            total_trades = TradeModel.findAll()
-            losing_months = stats["analytics"]["losingMonths"]
-            time_to_comeback = stats["timeToComeback"]
-            time_to_comback_in_row = max(
-                [time["losingMonthsCount"] for time in time_to_comeback])
-            higher_losing_months_percentage = max(
-                [abs(month["percentage_from_balance"]) for month in losing_months])
-            max_losing_month_in_row = max(
-                [month["inRow"] for month in losing_months])
-            print('\n----- Backtest done -----\n')
-            print(f'Candle start date: {self.last_candle_processed_date}')
-            print(f'Total trades: {len(total_trades)}')
-            print(f'Balance: {self.balance}')
-            print(f'Trade buy is open: {not self.trade_buy.is_closed}')
-            print(f'Trade sell is open: {not self.trade_sell.is_closed}')
-            print(
-                f'Opened buy/sell trades at the same time: {self.opened_both_side_count}')
-            print(f'Max balance: {self.max_balance}')
-            print(
-                f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
-            print(f'Max drawdown: {self.max_drawdown}%')
-            print(f'Losing months length: {len(losing_months)}')
-            print(f'Max losing months in a row: {max_losing_month_in_row}')
-            print(
-                f'Higher loss in one month: {higher_losing_months_percentage}%')
-            print(f'Time to comeback length: {len(time_to_comeback)}')
-            print(f'Time to comeback in a row: {time_to_comback_in_row}')
-            print('\n')
+            self.print_final_backtest_message()
+
         except KeyboardInterrupt:
             curses.endwin()
+            self.print_final_backtest_message()
             pass
+
+    def print_final_backtest_message(self):
+        total_trades = TradeModel.findAll()
+
+        self.loggerService.log('\n----- Backtest done -----', False, '\n', '')
+        self.loggerService.log(
+            f'Candle 5m start date: {self.candle_5min_start_date}', False, '\n', '')
+        self.loggerService.log(
+            f'Candle 30m start date: {self.candle_30min_start_date}', False, '\n', '')
+        self.loggerService.log(
+            f'Candle 1h start date: {self.candle_1h_start_date}', False, '\n', '')
+        self.loggerService.log(
+            f'Candle 4h start date: {self.candle_4h_start_date}', False, '\n', '')
+        self.loggerService.log(
+            f'Total trades: {len(total_trades)}', False, '\n', '')
+        self.loggerService.log(f'Balance: {self.balance}', False, '\n', '')
+        self.loggerService.log(
+            f'Trade buy is open: {not self.trade_buy.is_closed}', False, '\n', '')
+        self.loggerService.log(
+            f'Trade sell is open: {not self.trade_sell.is_closed}', False, '\n', '')
+        self.loggerService.log(
+            f'Opened buy/sell trades at the same time: {self.opened_both_side_count}', False, '\n', '')
+        self.loggerService.log(
+            f'Max balance: {self.max_balance}', False, '\n', '')
+        self.loggerService.log(
+            f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€', False, '\n', '')
+        self.loggerService.log(
+            f'Max drawdown: {self.max_drawdown}%', False, '\n', '')
+
+        stats = json.loads(StatsService().handle_route())
+        losing_months = stats["analytics"]["losingMonths"]
+        time_to_comeback = stats["timeToComeback"]
+        time_to_comback_in_row = 0
+        higher_losing_months_percentage = 0
+        max_losing_month_in_row = 0
+        if (len(time_to_comeback) > 0):
+            time_to_comback_in_row = max(
+                [time["losingMonthsCount"] for time in time_to_comeback])
+
+        if (len(losing_months) > 0):
+            higher_losing_months_percentage = max(
+                [abs(month["percentage_from_balance"]) for month in losing_months])
+
+        if (len(losing_months) > 0):
+            max_losing_month_in_row = max(
+                [month["inRow"] for month in losing_months])
+        self.loggerService.log(
+            f'Losing months length: {len(losing_months)}', False, '\n', '')
+        self.loggerService.log(
+            f'Max losing months in a row: {max_losing_month_in_row}', False, '\n', '')
+        self.loggerService.log(
+            f'Higher loss in one month: {higher_losing_months_percentage}%', False, '\n', '')
+        self.loggerService.log(
+            f'Time to comeback length: {len(time_to_comeback)}', False, '\n', '')
+        self.loggerService.log(
+            f'Time to comeback in a row: {time_to_comback_in_row}', False, '\n', '')
 
     def set_candles_list(self, candle_5min: Candle) -> Candle:
         current_candle_5min_start_date = datetime.fromtimestamp(
