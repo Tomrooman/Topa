@@ -259,6 +259,16 @@ class BotDev(BotManager):
             if (position == 'Idle'):
                 return
 
+            if (position == TradeType.BUY and self.trade_sell.is_closed == False):
+                self.check_to_close_trade(
+                    self.trade_sell, self.indicators_sell, 'force_close')
+                return
+
+            if (position == TradeType.SELL and self.trade_buy.is_closed == False):
+                self.check_to_close_trade(
+                    self.trade_buy, self.indicators_buy, 'force_close')
+                return
+
             if (position == TradeType.BUY and self.trade_buy.is_closed == True):
                 self.take_position(TradeType.BUY)
             elif (position == TradeType.SELL and self.trade_sell.is_closed == True):

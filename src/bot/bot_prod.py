@@ -89,6 +89,14 @@ class BotProd(BotManager):
         if (position == TradeType.SELL and self.trade_sell.is_closed == False):
             return
 
+        if (position == TradeType.SELL and self.trade_buy.is_closed == False):
+            self.fxopenApi.close_trade(self.trade_buy.fxopen_id)
+            return
+
+        if (position == TradeType.BUY and self.trade_sell.is_closed == False):
+            self.fxopenApi.close_trade(self.trade_sell.fxopen_id)
+            return
+
         position_value = self.get_position_value()
         new_trade_id = ObjectId()
         if (position == TradeType.BUY):
