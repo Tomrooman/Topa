@@ -12,7 +12,7 @@ def main():
         'Symbol, Timeframe, Start timestamp, Start date, Open, High, Low, Close\n')
     file1.close()
 
-    with open('data/EURUSD_historical_1min.csv', mode='rb') as csv_file:
+    with open('data/EURUSD.txt', mode='rb') as csv_file:
         line_count = 0
         for row in csv_file:
             line = row.decode('utf-8').split(',')
@@ -27,10 +27,12 @@ def main():
                 date = datetime.datetime(
                     year=int(year), month=int(month), day=int(day), hour=int(hours), minute=int(minutes), second=0, tzinfo=datetime.timezone.utc)
                 if (len(candles_tick_list) != 0):
-                    last_candle_last_minute_character = int(
-                        str(candles_tick_list[-1]["minute"])[-1:])
-                    last_minute_character = int(str(minutes)[-1:])
-                    if ((last_candle_last_minute_character < 5 and last_minute_character >= 5) or (last_candle_last_minute_character >= 5 and last_minute_character < 5) or abs(candles_tick_list[-1]["minute"] - minutes) >= 5):
+                    first_candle_minutes_character = int(
+                        str(candles_tick_list[0]["minute"])[-1:])
+                    current_minute_last_character = int(str(minutes)[-1:])
+                    first_candle_hours = candles_tick_list[0]["hours"]
+                    first_candle_day = candles_tick_list[0]["day"]
+                    if ((first_candle_minutes_character < 5 and current_minute_last_character >= 5) or (first_candle_minutes_character >= 5 and current_minute_last_character < 5) or first_candle_hours != hours or first_candle_day != day):
                         candle = {
                             "start_timestamp": candles_tick_list[0]["start_timestamp"],
                             "start_formatted_date": candles_tick_list[0]["start_formatted_date"],
@@ -52,6 +54,8 @@ def main():
                     "low": float(line[5]),
                     "close": float(line[6]),
                     "minute": minutes,
+                    "hours": hours,
+                    "day": day,
                 })
             line_count += 1
             print(f'\rProcessed {line_count} lines.')

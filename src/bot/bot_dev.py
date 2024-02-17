@@ -25,6 +25,10 @@ class BotDev(BotManager):
     last_candle_processed_date = None
     opened_both_side_count = 0
 
+    last_candle_5min_minute = 0
+    last_candle_5min_hour = 0
+    last_candle_5min_day = 0
+
     def start(self):
         f = open("data/diff_to_high.txt", "w")
         f.write("")
@@ -110,13 +114,18 @@ class BotDev(BotManager):
             pass
 
     def set_candles_list(self, candle_5min: Candle) -> Candle:
+        current_candle_5min_start_date = datetime.fromtimestamp(
+            candle_5min.start_timestamp / 1000, tz=timezone.utc)
+        current_candle_5min_minute = current_candle_5min_start_date.minute
+        current_candle_5min_hour = current_candle_5min_start_date.hour
+        current_candle_5min_day = current_candle_5min_start_date.day
+
         if (len(self.candles_5min_list) != 0):
             last_candle_5min_start_date = datetime.fromtimestamp(
                 self.candles_5min_list[-1].start_timestamp / 1000, tz=timezone.utc)
-            current_candle_5min_start_date = datetime.fromtimestamp(
-                candle_5min.start_timestamp / 1000, tz=timezone.utc)
             diff_minutes = (current_candle_5min_start_date -
                             last_candle_5min_start_date).total_seconds() / 60
+
             if (diff_minutes > 10 and current_candle_5min_start_date.hour != 23 and current_candle_5min_start_date.hour != 0):
                 # print('## Difference minutes too high, drop all candles list ##')
                 f = open("data/diff_to_high.txt", "a")
@@ -132,16 +141,33 @@ class BotDev(BotManager):
                     self.candles_4h_list = []
                     self.rsi_1h.value = 0
                     self.rsi_4h.value = 0
-            if (current_candle_5min_start_date.minute == 0 or current_candle_5min_start_date.minute == 30):
+
+            if ((self.last_candle_5min_minute < 30 and current_candle_5min_minute >= 30)
+                or (self.last_candle_5min_minute >= 30 and current_candle_5min_minute < 30)
+                or self.last_candle_5min_hour != current_candle_5min_hour
+                    or self.last_candle_5min_day != current_candle_5min_day):
                 self.candles_30min_list.append(create_from_csv_line(
                     self.open_file_30min.get_chunk().values[0]))
-            if (current_candle_5min_start_date.hour != last_candle_5min_start_date.hour):
+
+            if (current_candle_5min_hour != self.last_candle_5min_hour or current_candle_5min_day != self.last_candle_5min_day):
                 self.candles_1h_list.append(create_from_csv_line(
                     self.open_file_1h.get_chunk().values[0]))
-            if (current_candle_5min_start_date.hour != last_candle_5min_start_date.hour and (current_candle_5min_start_date.hour % 4 == 0 or current_candle_5min_start_date.hour == 0)):
+
+            if (((self.last_candle_5min_hour < 4 and current_candle_5min_hour >= 4)
+                 or (self.last_candle_5min_hour >= 4 and self.last_candle_5min_hour < 8 and current_candle_5min_hour >= 8)
+                 or (self.last_candle_5min_hour >= 8 and self.last_candle_5min_hour < 12 and current_candle_5min_hour >= 12)
+                 or (self.last_candle_5min_hour >= 12 and self.last_candle_5min_hour < 16 and current_candle_5min_hour >= 16)
+                 or (self.last_candle_5min_hour >= 16 and self.last_candle_5min_hour < 20 and current_candle_5min_hour >= 20)
+                 or (self.last_candle_5min_hour >= 20 and current_candle_5min_hour < 20))
+                    or self.last_candle_5min_day != current_candle_5min_day):
                 self.candles_4h_list.append(create_from_csv_line(
                     self.open_file_4h.get_chunk().values[0]))
+
         self.candles_5min_list.append(candle_5min)
+        self.last_candle_5min_minute = current_candle_5min_minute
+        self.last_candle_5min_hour = current_candle_5min_hour
+        self.last_candle_5min_day = current_candle_5min_day
+
         if (len(self.candles_5min_list) > self.CANDLES_HISTORY_LENGTH):
             del self.candles_5min_list[0]
         if (len(self.candles_30min_list) > self.CANDLES_HISTORY_LENGTH):

@@ -10,7 +10,7 @@ def main():
     file1.write(
         'Symbol, Timeframe, Start timestamp, Start date, Open, High, Low, Close\n')
     file1.close()
-    with open('data/EURUSD_historical_1min.csv', mode='rb') as csv_file:
+    with open('data/EURUSD.txt', mode='rb') as csv_file:
         lines_count = 0
         for row in csv_file:
             line = row.decode('utf-8').split(',')
@@ -25,9 +25,10 @@ def main():
                 date = datetime.datetime(
                     year=int(year), month=int(month), day=int(day), hour=int(hours), minute=int(minutes), second=0, tzinfo=datetime.timezone.utc)
                 if (len(candles_tick_list) != 0):
-                    last_candle_minutes = candles_tick_list[-1]["minute"]
-                    last_candle_hours = candles_tick_list[-1]["hours"]
-                    if ((last_candle_minutes < 30 and minutes >= 30) or (last_candle_minutes >= 30 and minutes < 30) or last_candle_hours != hours):
+                    first_candle_minutes = candles_tick_list[0]["minute"]
+                    first_candle_hours = candles_tick_list[0]["hours"]
+                    first_candle_day = candles_tick_list[0]["day"]
+                    if ((first_candle_minutes < 30 and minutes >= 30) or (first_candle_minutes >= 30 and minutes < 30) or first_candle_hours != hours or first_candle_day != day):
                         candle = {
                             "start_timestamp": candles_tick_list[0]["start_timestamp"],
                             "start_formatted_date": candles_tick_list[0]["start_formatted_date"],
@@ -50,6 +51,7 @@ def main():
                     "close": float(line[6]),
                     "hours": hours,
                     "minute": minutes,
+                    "day": day,
                 })
             lines_count += 1
             print(f'\rProcessed {lines_count} lines.')
