@@ -97,25 +97,58 @@ class Analytic:
 
 
 @dataclass
+class TradesPercentage:
+    trades: list[TradeModel]
+    percentageOfTotalTrades: float
+
+    def to_json(self):
+        return {
+            "trades": list(map(lambda trade: trade.to_json(), self.trades)),
+            "percentageOfTotalTrades": self.percentageOfTotalTrades
+        }
+
+
+@dataclass
 class HandleRouteReturnType:
     years: list[YearDict]
     analytics: Analytic
     timeToComeback: list[TimeToComeback]
+    positiveTrades: TradesPercentage
+    negativeTrades: TradesPercentage
 
     def to_json(self):
         return {
             "years": list(map(lambda year: year.to_json(), self.years)),
             "analytics": self.analytics.to_json(),
-            "timeToComeback": list(map(lambda timeToComeback: timeToComeback.to_json(), self.timeToComeback))
+            "timeToComeback": list(map(lambda timeToComeback: timeToComeback.to_json(), self.timeToComeback)),
+            "positiveTrades": self.positiveTrades.to_json(),
+            "negativeTrades": self.negativeTrades.to_json()
+        }
+
+
+@dataclass
+class GroupedTradesByDateReturnType:
+    yearDict: list[YearDict]
+    positiveTrades: TradesPercentage
+    negativeTrades: TradesPercentage
+
+    def to_json(self):
+        return {
+            "yearDict": list(map(lambda year: year.to_json(), self.yearDict)),
+            "positiveTrades": self.positiveTrades.to_json(),
+            "negativeTrades": self.negativeTrades.to_json()
         }
 
 
 @dataclass
 class StatsService:
-    def group_trades_by_days_months_years(self, trades: list[TradeModel]) -> list[YearDict]:
+    def group_trades_by_days_months_years(self, trades: list[TradeModel]) -> GroupedTradesByDateReturnType:
         yearDict = []
+        positiveTrades = TradesPercentage(trades=[], percentageOfTotalTrades=0)
+        negativeTrades = TradesPercentage(trades=[], percentageOfTotalTrades=0)
 
         for trade in trades:
+            trade_profit = float(trade.profit)
             opened_at = datetime.datetime.strptime(
                 trade.opened_at, "%Y-%m-%dT%H:%M:%S+00:00")
             existingDay = None
@@ -149,11 +182,21 @@ class StatsService:
                 existingMonth.days.append(existingDay)
             else:
                 existingDay.trades.append(trade)
-            existingDay.profit += float(trade.profit)
-            existingMonth.profit += float(trade.profit)
-            existingYear.profit += float(trade.profit)
+            existingDay.profit += trade_profit
+            existingMonth.profit += trade_profit
+            existingYear.profit += trade_profit
 
-        return yearDict
+            if (trade_profit >= 0):
+                positiveTrades.trades.append(trade)
+            elif (trade_profit < 0):
+                negativeTrades.trades.append(trade)
+
+        positiveTrades.percentageOfTotalTrades = round(
+            (len(positiveTrades.trades) / len(trades)) * 100, 4)
+        negativeTrades.percentageOfTotalTrades = round(
+            (len(negativeTrades.trades) / len(trades)) * 100, 4)
+
+        return GroupedTradesByDateReturnType(yearDict=yearDict, positiveTrades=positiveTrades, negativeTrades=negativeTrades)
 
     def calcul_stats(self, trades: list[TradeModel], yearDict: list[YearDict]):
         analytic = Analytic(totalTrades=len(trades),
@@ -229,11 +272,16 @@ class StatsService:
 
     def handle_route(self) -> str:
         trades = TradeModel.findAll()
-        yearDict = self.group_trades_by_days_months_years(trades)
+        grouped_trades_by_date = self.group_trades_by_days_months_years(trades)
+        yearDict = grouped_trades_by_date.yearDict
+        positive_trades = grouped_trades_by_date.positiveTrades
+        negative_trades = grouped_trades_by_date.negativeTrades
         stats = self.calcul_stats(trades, yearDict)
 
         return json.dumps(HandleRouteReturnType(
             years=list(yearDict),
             analytics=stats['analytic'],
-            timeToComeback=list(stats['timeToComeback'])
+            timeToComeback=list(stats['timeToComeback']),
+            positiveTrades=positive_trades,
+            negativeTrades=negative_trades
         ).to_json())

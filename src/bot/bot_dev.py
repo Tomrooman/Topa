@@ -172,6 +172,10 @@ class BotDev(BotManager):
             f'Time to comeback length: {len(time_to_comeback)}', False, '\n', '')
         self.loggerService.log(
             f'Time to comeback in a row: {time_to_comback_in_row}', False, '\n', '')
+        self.loggerService.log(
+            f'Positive trades: {len(stats["positiveTrades"]["trades"])} -> {stats["positiveTrades"]["percentageOfTotalTrades"]}%', False, '\n', '')
+        self.loggerService.log(
+            f'Negative trades: {len(stats["negativeTrades"]["trades"])} -> {stats["negativeTrades"]["percentageOfTotalTrades"]}%', False, '\n', '')
 
     def set_candles_list(self, candle_5min: Candle) -> Candle:
         current_candle_5min_start_date = datetime.fromtimestamp(
