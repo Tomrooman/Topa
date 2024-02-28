@@ -52,7 +52,7 @@ class BotManager:
     rsi_5min = RsiData(value=0, period=11)
     rsi_5min_fast = RsiData(value=0, period=7)
     rsi_30min = RsiData(value=0, period=7)
-    rsi_1h = RsiData(value=0, period=5)
+    rsi_1h = RsiData(value=0, period=3)
     rsi_4h = RsiData(value=0, period=3)
 
     buy_triggered = False
@@ -122,8 +122,8 @@ class BotManager:
         if (self.trade_buy.is_closed == True
                 and min_rsi == self.rsi_5min_fast.value
                 and self.rsi_5min.value <= 40
-                and self.rsi_30min.value < self.rsi_4h.value
-                and self.rsi_1h.value < self.rsi_4h.value
+                and self.rsi_30min.value < self.rsi_1h.value
+                # and self.rsi_1h.value < self.rsi_4h.value
             ):  # BUY
             # return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
             self.buy_triggered = True
@@ -131,8 +131,8 @@ class BotManager:
         elif (self.trade_sell.is_closed == True
                 and max_rsi == self.rsi_5min_fast.value
                 and self.rsi_5min.value >= 60
-                and self.rsi_30min.value > self.rsi_4h.value
-                and self.rsi_1h.value > self.rsi_4h.value
+                and self.rsi_30min.value > self.rsi_1h.value
+                # and self.rsi_1h.value > self.rsi_4h.value
               ):  # SELL
             # return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
             self.sell_triggered = True
