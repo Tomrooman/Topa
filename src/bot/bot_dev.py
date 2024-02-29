@@ -192,6 +192,14 @@ class BotDev(BotManager):
 
             if (diff_minutes > 10 and current_candle_5min_start_date.hour != 23 and current_candle_5min_start_date.hour != 0):
                 # print('## Difference minutes too high, drop all candles list ##')
+                if (self.trade_sell.is_closed == False):
+                    self.check_to_close_trade(
+                        self.trade_sell, self.indicators_sell, 'force_loss')
+
+                if (self.trade_buy.is_closed == False):
+                    self.check_to_close_trade(
+                        self.trade_buy, self.indicators_buy, 'force_loss')
+
                 f = open("data/diff_to_high.txt", "a")
                 f.write(
                     f"Difference minutes too high, drop all candles list\n{last_candle_5min_start_date.isoformat()}\n{current_candle_5min_start_date.isoformat()}\ndiff minutes:{diff_minutes}\n\n")
@@ -312,7 +320,7 @@ class BotDev(BotManager):
         current_candle = self.get_last_candle()
         closed_date = self.get_close_date_from_candle(current_candle)
         # Loss
-        if ((trade.type.value == TradeType.SELL and current_candle.high >= trade.stop_loss) or (trade.type.value == TradeType.BUY and current_candle.low <= trade.stop_loss)):
+        if ((trade.type.value == TradeType.SELL and current_candle.high >= trade.stop_loss) or (trade.type.value == TradeType.BUY and current_candle.low <= trade.stop_loss) or custom_close == 'force_loss'):
             diff_price_amount = abs(trade.stop_loss - trade.price)
             loss_amount = int(trade.position_value) * \
                 (diff_price_amount / trade.price)
