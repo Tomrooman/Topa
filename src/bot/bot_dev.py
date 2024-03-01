@@ -204,6 +204,8 @@ class BotDev(BotManager):
                 f.write(
                     f"Difference minutes too high, drop all candles list\n{last_candle_5min_start_date.isoformat()}\n{current_candle_5min_start_date.isoformat()}\ndiff minutes:{diff_minutes}\n\n")
                 f.close()
+                self.buy_triggered = False
+                self.sell_triggered = False
                 self.candles_5min_list = []
                 self.candles_30min_list = []
                 self.rsi_5min.value = 0

@@ -26,8 +26,8 @@ class BotManager:
     CANDLES_HISTORY_LENGTH = 12 * 12  # 12 hours => 12 * HOURS
     MIN_BUY_TAKE_PROFIT_PERCENTAGE = 0.002
     MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.002
-    MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.004
-    MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.004
+    MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.005
+    MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.005
     MAX_LOSS_PERCENTAGE = 0.0015
 
     START_TRADE_HOUR = 4
@@ -111,18 +111,23 @@ class BotManager:
                       self.rsi_1h.value, self.rsi_4h.value)
         previous_candles = self.candles_5min_list[-self.CANDLES_HISTORY_LENGTH:]
         if (self.buy_triggered == True):
-            if (self.rsi_5min_fast.value >= 20 and self.rsi_5min_fast.value < self.rsi_5min.value):
+            if (self.rsi_5min_fast.value >= 20
+                # and self.rsi_5min_fast.value < self.rsi_5min.value
+                ):
                 self.buy_triggered = False
                 return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
         elif (self.sell_triggered == True):
-            if (self.rsi_5min_fast.value <= 80 and self.rsi_5min_fast.value > self.rsi_5min.value):
+            if (self.rsi_5min_fast.value <= 80
+                # and self.rsi_5min_fast.value > self.rsi_5min.value
+                ):
                 self.sell_triggered = False
                 return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
 
         if (self.trade_buy.is_closed == True
                 and min_rsi == self.rsi_5min_fast.value
-                and self.rsi_5min.value <= 40
+                and self.rsi_5min_fast.value <= 40
                 and self.rsi_30min.value < self.rsi_1h.value
+                # and self.rsi_1h.value >= 60
                 # and self.rsi_1h.value < self.rsi_4h.value
             ):  # BUY
             # return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
@@ -130,8 +135,9 @@ class BotManager:
             self.sell_triggered = False
         elif (self.trade_sell.is_closed == True
                 and max_rsi == self.rsi_5min_fast.value
-                and self.rsi_5min.value >= 60
+                and self.rsi_5min_fast.value >= 60
                 and self.rsi_30min.value > self.rsi_1h.value
+                # and self.rsi_1h.value <= 40
                 # and self.rsi_1h.value > self.rsi_4h.value
               ):  # SELL
             # return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
