@@ -25,6 +25,9 @@ jobs:
       image: docker:25.0.1-dind
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 20.x
       - run: docker login -u ${{ secrets.PRIVATE_REGISTRY_USERNAME }} -p ${{ secrets.PRIVATE_REGISTRY_PASSWORD }} http://${{ secrets.PRIVATE_REGISTRY_IP }}:${{ secrets.PRIVATE_REGISTRY_PORT }}
       - run: docker build --pull --no-cache -f dockerfiles/demo.bot.dockerfile -t ${{ secrets.PRIVATE_REGISTRY_IP }}:${{ secrets.PRIVATE_REGISTRY_PORT }}/topa-bot-demo .
       - run: docker push ${{ secrets.PRIVATE_REGISTRY_IP }}:${{ secrets.PRIVATE_REGISTRY_PORT }}/topa-bot-demo
