@@ -24,8 +24,8 @@ jobs:
     container:
       image: docker:25.0.1-dind
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20.x
       - run: docker login -u ${{ secrets.PRIVATE_REGISTRY_USERNAME }} -p ${{ secrets.PRIVATE_REGISTRY_PASSWORD }} http://${{ secrets.PRIVATE_REGISTRY_IP }}:${{ secrets.PRIVATE_REGISTRY_PORT }}
