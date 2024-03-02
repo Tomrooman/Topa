@@ -73,5 +73,6 @@ def map_to_trade(trade: FxOpenGetTradeByIdResponse) -> TradeModel:
         is_closed=is_closed, price=trade['Price'], position_value=str(
             trade['InitialAmount']),
         take_profit=trade['TakeProfit'], stop_loss=trade['StopLoss'], type=TradeType(trade['Side']), close=0, profit=str(trade['Profit']), comission=trade['Commission'],
-        fxopen_id=trade['Id'], opened_at_timestamp=created_timestamp, opened_at=created_date, closed_at=closed_at
+        fxopen_id=trade['Id'], opened_at_timestamp=created_timestamp, opened_at=created_date, closed_at=closed_at,
+        devise=trade['Symbol']
     )

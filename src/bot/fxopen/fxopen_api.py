@@ -7,6 +7,7 @@ import requests
 import json
 from typing import Any, Literal
 from config.config_service import ConfigService
+from src.database.models.trade_model import DeviseValues
 from .mappers.map_to_candles_list import map_to_candles_list
 from .mappers.map_to_trade import map_to_trade
 from .mappers.map_to_account_info import map_to_account_info
@@ -66,10 +67,10 @@ class FxOpenApi():
         return map_to_trade(response)
 
     # https://ttdemowebapi.fxopen.net:8443/api/doc/index#!/54132Trades32information32and32operations/Trade_Post
-    def create_trade(self, side: Literal['Buy', 'Sell'], amount: int, stop_loss: float, take_profit: float, comment: ObjectId):
+    def create_trade(self, devise: DeviseValues, side: Literal['Buy', 'Sell'], amount: int, stop_loss: float, take_profit: float, comment: ObjectId):
         url = '/trade'
         data = json.dumps({
-            "Symbol": "EURUSD",
+            "Symbol": devise,
             "Amount": amount,
             "Side": side,
             "Type": "Market",

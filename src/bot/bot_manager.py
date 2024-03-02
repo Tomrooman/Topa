@@ -2,7 +2,7 @@ from dataclasses import dataclass
 import math
 from typing import Literal
 from bson import ObjectId
-from database.models.trade_model import TradeModel, TradeType, TradeTypeValues
+from database.models.trade_model import DeviseValues, TradeModel, TradeType, TradeTypeValues
 from database.models.indicators_model import IndicatorsModel
 from candle import Candle
 from indicators import get_rsi
@@ -22,6 +22,7 @@ class RsiData:
 
 class BotManager:
     FEES = 0.000035  # 0.0035%
+    FEES_CRYPTO = 0.005  # 0.5%
     LEVERAGE = 5
     CANDLES_HISTORY_LENGTH = 12 * 12  # 12 hours => 12 * HOURS
     MIN_BUY_TAKE_PROFIT_PERCENTAGE = 0.001
@@ -35,20 +36,21 @@ class BotManager:
     START_CUSTOM_CLOSE_HOUR = 20
     END_CUSTOM_CLOSE_HOUR = 21
 
+    devise: DeviseValues = 'EURUSD'
     balance: float = 2000
     max_balance: float = balance
     max_drawdown: float = 0
     current_drawdown: float = 0
     trade_buy = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value='0', status='New',
                            take_profit=0, stop_loss=0, type=TradeType(TradeType.BUY), close=0, profit='0', comission=0,
-                           fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='')
+                           fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='', devise='EURUSD')
     trade_sell = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value='0', status='New',
                             take_profit=0, stop_loss=0, type=TradeType(TradeType.SELL), close=0, profit='0', comission=0,
-                            fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='')
+                            fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='',  devise='EURUSD')
     indicators_buy = IndicatorsModel(_id=ObjectId(), trade_id=trade_buy._id, profit='0', type=TradeType(TradeType.BUY),
-                                     rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0)
+                                     rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0,  devise='EURUSD')
     indicators_sell = IndicatorsModel(_id=ObjectId(), trade_id=trade_buy._id, profit='0', type=TradeType(TradeType.SELL),
-                                      rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0)
+                                      rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0,  devise='EURUSD')
     rsi_5min = RsiData(value=0, period=11)
     rsi_5min_fast = RsiData(value=0, period=7)
     rsi_30min = RsiData(value=0, period=7)
@@ -62,6 +64,17 @@ class BotManager:
     candles_30min_list: list[Candle] = []
     candles_1h_list: list[Candle] = []
     candles_4h_list: list[Candle] = []
+
+    def setTradesDevise(self, devise: DeviseValues):
+        self.trade_buy.devise = devise
+        self.trade_sell.devise = devise
+        self.indicators_buy.devise = devise
+        self.indicators_sell.devise = devise
+
+        self.MIN_BUY_TAKE_PROFIT_PERCENTAGE = 0.01
+        self.MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.01
+        self.MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.05
+        self.MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.05
 
     def get_last_candle(self):
         return self.candles_5min_list[-1]
@@ -205,6 +218,9 @@ class BotManager:
             return {'position': TradeType.SELL, "profit_percentage": profit_percentage}
 
     def get_position_value(self) -> int:
+        if (self.devise == 'BTCUSD'):
+            return int(math.floor(self.balance * 2))
+
         lot_price = 100000
         min_lot_size = 0.01
         min_trade_price = lot_price * min_lot_size
