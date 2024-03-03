@@ -7,6 +7,8 @@ from database.models.indicators_model import IndicatorsModel
 from candle import Candle
 from indicators import get_rsi
 from datetime import datetime, timezone
+from parameters.EURUSD import parameters as EURUSD_parameters
+from parameters.BTCUSD import parameters as BTCUSD_parameters
 
 # Sydney is open from 9:00 to 18:00 am UTC
 # Tokyo is open from 0:00 to 9:00 UTC
@@ -21,22 +23,20 @@ class RsiData:
 
 
 class BotManager:
-    FEES = 0.000035  # 0.0035%
-    FEES_CRYPTO = 0.005  # 0.5%
-    LEVERAGE = 5
-    CANDLES_HISTORY_LENGTH = 12 * 12  # 12 hours => 12 * HOURS
-    MIN_BUY_TAKE_PROFIT_PERCENTAGE = 0.001
-    MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.001
-    MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.005
-    MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.005
-    # MAX_LOSS_PERCENTAGE = 0.00125
+    FEES: float
+    LEVERAGE: int
+    CANDLES_HISTORY_LENGTH: int
+    MIN_BUY_TAKE_PROFIT_PERCENTAGE: float
+    MIN_SELL_TAKE_PROFIT_PERCENTAGE: float
+    MAX_BUY_TAKE_PROFIT_PERCENTAGE: float
+    MAX_SELL_TAKE_PROFIT_PERCENTAGE: float
 
-    START_TRADE_HOUR = 1
-    END_TRADE_HOUR = 19
-    START_CUSTOM_CLOSE_HOUR = 20
-    END_CUSTOM_CLOSE_HOUR = 21
+    START_TRADE_HOUR: int
+    END_TRADE_HOUR: int
+    START_CUSTOM_CLOSE_HOUR: int
+    END_CUSTOM_CLOSE_HOUR: int
 
-    devise: DeviseValues = 'EURUSD'
+    devise: DeviseValues
     balance: float = 2000
     max_balance: float = balance
     max_drawdown: float = 0
@@ -52,7 +52,7 @@ class BotManager:
     indicators_sell = IndicatorsModel(_id=ObjectId(), trade_id=trade_buy._id, profit='0', type=TradeType(TradeType.SELL),
                                       rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0,  devise='EURUSD')
     rsi_5min = RsiData(value=0, period=11)
-    rsi_5min_fast = RsiData(value=0, period=7)
+    rsi_5min_fast = RsiData(value=0, period=5)
     rsi_30min = RsiData(value=0, period=7)
     rsi_1h = RsiData(value=0, period=3)
     rsi_4h = RsiData(value=0, period=3)
@@ -65,16 +65,21 @@ class BotManager:
     candles_1h_list: list[Candle] = []
     candles_4h_list: list[Candle] = []
 
-    def setTradesDevise(self, devise: DeviseValues):
+    def setDevise(self, devise: DeviseValues):
+        self.devise = devise
         self.trade_buy.devise = devise
         self.trade_sell.devise = devise
         self.indicators_buy.devise = devise
         self.indicators_sell.devise = devise
 
-        self.MIN_BUY_TAKE_PROFIT_PERCENTAGE = 0.01
-        self.MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.01
-        self.MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.05
-        self.MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.05
+        if (devise == 'BTCUSD'):
+            parameters = BTCUSD_parameters
+
+        if (devise == 'EURUSD'):
+            parameters = EURUSD_parameters
+
+        for (key, value) in parameters.items():
+            setattr(self, key, value)
 
     def get_last_candle(self):
         return self.candles_5min_list[-1]
@@ -138,7 +143,7 @@ class BotManager:
 
         if (self.trade_buy.is_closed == True
                 and min_rsi == self.rsi_5min_fast.value
-                and self.rsi_5min_fast.value <= 40
+                and self.rsi_5min_fast.value <= 30
                 and self.rsi_30min.value < self.rsi_1h.value
                 # and self.rsi_1h.value >= 60
                 # and self.rsi_1h.value < self.rsi_4h.value
@@ -148,7 +153,7 @@ class BotManager:
             self.sell_triggered = False
         elif (self.trade_sell.is_closed == True
                 and max_rsi == self.rsi_5min_fast.value
-                and self.rsi_5min_fast.value >= 60
+                and self.rsi_5min_fast.value >= 70
                 and self.rsi_30min.value > self.rsi_1h.value
                 # and self.rsi_1h.value <= 40
                 # and self.rsi_1h.value > self.rsi_4h.value
@@ -219,7 +224,7 @@ class BotManager:
 
     def get_position_value(self) -> int:
         if (self.devise == 'BTCUSD'):
-            return int(math.floor(self.balance * 2))
+            return int(math.floor(self.balance * self.LEVERAGE))
 
         lot_price = 100000
         min_lot_size = 0.01

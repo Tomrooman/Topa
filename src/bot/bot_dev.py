@@ -31,8 +31,8 @@ class BotDev(BotManager):
 
     def start(self):
         devise = "EURUSD" if len(sys.argv) < 2 else sys.argv[1]
-        self.devise = DeviseType(devise).value
-        self.setTradesDevise(self.devise)
+        devise = DeviseType(devise).value
+        self.setDevise(devise)
         self.open_file_5min = pd.read_csv(
             f"data/formatted/{devise}_5min.csv", chunksize=1)
         self.open_file_30min = pd.read_csv(
@@ -103,8 +103,8 @@ class BotDev(BotManager):
                                    f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
                 self.stdscr.addstr(10, 0,
                                    f'Max drawdown: {self.max_drawdown}%')
-                self.stdscr.addstr(12, 0,
-                                   f'devise: {"EURUSD" if len(sys.argv) < 2 else sys.argv[1]}')
+                self.stdscr.addstr(11, 0,
+                                   f'Devise: {"EURUSD" if len(sys.argv) < 2 else sys.argv[1]}')
                 try:
                     candle_5min = self.set_candles_list(candle_5min)
                 except Exception as e:
@@ -115,7 +115,7 @@ class BotDev(BotManager):
                         self.set_all_rsi()
                     if (self.rsi_5min.value != 0 and self.rsi_30min.value != 0 and self.rsi_1h.value != 0 and self.rsi_4h.value != 0):
                         self.test_strategy()
-                    self.stdscr.addstr(11, 0, '----------')
+                    self.stdscr.addstr(12, 0, '----------')
                     self.stdscr.refresh()
             curses.endwin()
             self.print_final_backtest_message()
@@ -152,6 +152,9 @@ class BotDev(BotManager):
             f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€', False, '\n', '')
         self.loggerService.log(
             f'Max drawdown: {self.max_drawdown}%', False, '\n', '')
+        self.loggerService.log(
+            f'Devise: {self.devise}', False, '\n', ''
+        )
 
         stats = json.loads(StatsService().handle_route())
         losing_months = stats["analytics"]["losingMonths"]
@@ -326,8 +329,6 @@ class BotDev(BotManager):
 
     def check_to_close_trade(self, trade: TradeModel, indicators: IndicatorsModel, custom_close: str | None):
         fees_amount = int(trade.position_value) * self.FEES * 2
-        if (self.devise == 'BTCUSD'):
-            fees_amount = int(trade.position_value) * self.FEES_CRYPTO * 2
         trade.comission = fees_amount
         current_candle = self.get_last_candle()
         closed_date = self.get_close_date_from_candle(current_candle)

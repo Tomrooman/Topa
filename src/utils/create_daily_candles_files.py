@@ -16,7 +16,7 @@ def main():
     month = ''
     day = ''
 
-    with open(f'data/formatted/EURUSD_{timeframe}.csv', mode='rb') as csv_file:
+    with open(f'data/formatted/BTCUSD_{timeframe}.csv', mode='rb') as csv_file:
         line_count = 0
         for row in csv_file:
             line = row.decode('utf-8').split(',')
