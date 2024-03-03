@@ -28,7 +28,7 @@ class FxOpenGetCandlesResponse:
 
 def map_to_candles_list(candles: FxOpenGetCandlesResponse) -> list[Candle]:
     return list(map(lambda candle: Candle(
-        symbol=candle['Symbol'],
+        symbol=candles['Symbol'],
         start_timestamp=candle['Timestamp'],
         open=candle['Open'],
         high=candle['High'],

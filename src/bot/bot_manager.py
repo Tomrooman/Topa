@@ -26,6 +26,7 @@ class BotManager:
     FEES: float
     LEVERAGE: int
     CANDLES_HISTORY_LENGTH: int
+    DIGITS: int
     MIN_BUY_TAKE_PROFIT_PERCENTAGE: float
     MIN_SELL_TAKE_PROFIT_PERCENTAGE: float
     MAX_BUY_TAKE_PROFIT_PERCENTAGE: float

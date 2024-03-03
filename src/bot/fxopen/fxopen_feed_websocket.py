@@ -6,6 +6,7 @@ from threading import Thread
 from config.config_service import ConfigService
 from bot.fxopen.fxopen_api import Periodicity
 from bot.candle import Candle
+from database.models.trade_model import DeviseValues
 from .fxopen_websocket_manager import FxOpenWebsocketManager
 from logger.logger_service import LoggerService
 
@@ -22,17 +23,19 @@ class FxOpenFeedWebsocket(FxOpenWebsocketManager):
     configService = ConfigService()
     loggerService = LoggerService()
     botService: BotServiceSharedFeedFunctions
+    devise: DeviseValues
 
-    def __init__(self, environment: Literal['prod', 'demo'], botService: BotServiceSharedFeedFunctions):
+    def __init__(self, environment: Literal['prod', 'demo'], devise: DeviseValues, botService: BotServiceSharedFeedFunctions):
         if (environment == 'prod'):
             self.websocket_feed_url = 'wss://ttlivewebapi.fxopen.net:3000'
-            self.id += '-prod'
+            self.id += f'-prod-{devise}'
         elif (environment == 'demo'):
             self.websocket_feed_url = 'wss://ttdemowebapi.soft-fx.com:2083'
-            self.id += '-demo'
+            self.id += f'-demo-{devise}'
         else:
             raise Exception('Invalid environment')
 
+        self.devise = devise
         self.botService = botService
         self.init_websocket(
             websocket_url=self.websocket_feed_url, enableTrace=False)
@@ -97,7 +100,7 @@ class FxOpenFeedWebsocket(FxOpenWebsocketManager):
                 {
                     "Subscribe":
                     [{
-                        "Symbol": 'EURUSD',
+                        "Symbol": self.devise,
                         "BarParams": [{
                             "Periodicity": periodicity,
                             "PriceType": 'Ask'

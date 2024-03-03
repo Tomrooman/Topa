@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import Any, Callable, Literal
+from typing import Callable, Literal
 import json
 import websocket
 from threading import Thread
 from config.config_service import ConfigService
-from database.models.trade_model import TradeTypeValues
+from database.models.trade_model import DeviseValues, TradeTypeValues
 from .fxopen_websocket_manager import FxOpenWebsocketManager
 from logger.logger_service import LoggerService
 
@@ -23,16 +23,19 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
     configService = ConfigService()
     loggerService = LoggerService()
     botService: BotServiceSharedTradeFunctions
+    devise: DeviseValues
 
-    def __init__(self, environment: Literal['prod', 'demo'], botService: BotServiceSharedTradeFunctions):
+    def __init__(self, environment: Literal['prod', 'demo'], devise: DeviseValues, botService: BotServiceSharedTradeFunctions):
         if (environment == 'prod'):
             self.websocket_trade_url = 'wss://ttlivewebapi.fxopen.net:3001'
-            self.id += '-prod'
+            self.id += f'-prod-{devise}'
         elif (environment == 'demo'):
             self.websocket_trade_url = 'wss://ttdemowebapi.soft-fx.com:2087'
-            self.id += '-demo'
+            self.id += f'-demo-{devise}'
         else:
             raise Exception('Invalid environment')
+
+        self.devise = devise
         self.botService = botService
         self.init_websocket(
             websocket_url=self.websocket_trade_url, enableTrace=False)

@@ -6,9 +6,11 @@
   "main": "index.js",
   "scripts": {
     "start:bot:dev": "python3 src/bot/bot_dev.py EURUSD",
+    "start:bot:demo": "python3 src/bot/bot_prod.py demo EURUSD",
+    "start:bot:prod": "python3 src/bot/bot_prod.py prod EURUSD",
     "start:bot:crypto:dev": "python3 src/bot/bot_dev.py BTCUSD",
-    "start:bot:demo": "python3 src/bot/bot_prod.py demo",
-    "start:bot:prod": "python3 src/bot/bot_prod.py prod",
+    "start:bot:crypto:demo": "python3 src/bot/bot_prod.py demo BTCUSD",
+    "start:bot:crypto:prod": "python3 src/bot/bot_prod.py prod BTCUSD",
     "start:api:dev": "flask --app src/api/api.py run --debug",
     "start:api:prod": "python3 src/api/api.py",
     "stats": "python3 src/bot/stats.py",

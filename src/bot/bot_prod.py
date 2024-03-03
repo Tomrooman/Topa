@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from dateutil import relativedelta
 from bson import ObjectId
 import sys  # NOQA
 import os  # NOQA
@@ -32,8 +31,8 @@ class BotProd(BotManager):
             raise Exception('Invalid environment')
 
         devise = "EURUSD" if len(sys.argv) < 3 else sys.argv[2]
-        self.devise = DeviseType(devise).value
-        self.setTradesDevise(self.devise)
+        devise = DeviseType(devise).value
+        self.setDevise(devise)
         self.fxopenApi = FxOpenApi(self.environment)
 
     def start(self):
@@ -46,13 +45,14 @@ class BotProd(BotManager):
             startup_data=self.startup_data
         )
         FxOpenTradeWebsocket(
-            self.environment, trade_websocket_shared_functions)
+            self.environment, self.devise, trade_websocket_shared_functions)
 
         feed_websocket_shared_functions = BotServiceSharedFeedFunctions(
             handle_new_candle_from_websocket=self.handle_new_candle_from_websocket,
             startup_data=self.startup_data
         )
-        FxOpenFeedWebsocket(self.environment, feed_websocket_shared_functions)
+        FxOpenFeedWebsocket(self.environment, self.devise,
+                            feed_websocket_shared_functions)
 
     def startup_data(self, startup=False):
         self.loggerService.log(f'startup data {self.environment}')
@@ -104,7 +104,7 @@ class BotProd(BotManager):
         new_trade_id = ObjectId()
         if (position == TradeType.BUY):
             fxopen_trade = self.fxopenApi.create_trade(
-                devise=self.devise, side=position, amount=position_value, stop_loss=self.trade_buy.stop_loss, take_profit=self.trade_buy.take_profit, comment=new_trade_id)
+                devise=self.devise, digits=self.DIGITS, side=position, amount=position_value, stop_loss=self.trade_buy.stop_loss, take_profit=self.trade_buy.take_profit, comment=new_trade_id)
             self.trade_buy = fxopen_trade
             self.indicators_buy._id = ObjectId()
             self.indicators_buy.type = self.trade_buy.type
@@ -113,7 +113,7 @@ class BotProd(BotManager):
             self.trade_buy.save()
         elif (position == TradeType.SELL):
             fxopen_trade = self.fxopenApi.create_trade(
-                devise=self.devise, side=position, amount=position_value, stop_loss=self.trade_sell.stop_loss, take_profit=self.trade_sell.take_profit, comment=new_trade_id)
+                devise=self.devise, digits=self.DIGITS, side=position, amount=position_value, stop_loss=self.trade_sell.stop_loss, take_profit=self.trade_sell.take_profit, comment=new_trade_id)
             self.trade_sell = fxopen_trade
             self.indicators_sell._id = ObjectId()
             self.indicators_sell.type = self.trade_sell.type
