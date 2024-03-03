@@ -52,7 +52,7 @@ class BotManager:
     indicators_sell = IndicatorsModel(_id=ObjectId(), trade_id=trade_buy._id, profit='0', type=TradeType(TradeType.SELL),
                                       rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0,  devise='EURUSD')
     rsi_5min = RsiData(value=0, period=11)
-    rsi_5min_fast = RsiData(value=0, period=5)
+    rsi_5min_fast = RsiData(value=0, period=7)
     rsi_30min = RsiData(value=0, period=7)
     rsi_1h = RsiData(value=0, period=3)
     rsi_4h = RsiData(value=0, period=3)
@@ -143,7 +143,7 @@ class BotManager:
 
         if (self.trade_buy.is_closed == True
                 and min_rsi == self.rsi_5min_fast.value
-                and self.rsi_5min_fast.value <= 30
+                and self.rsi_5min_fast.value <= 40
                 and self.rsi_30min.value < self.rsi_1h.value
                 # and self.rsi_1h.value >= 60
                 # and self.rsi_1h.value < self.rsi_4h.value
@@ -153,7 +153,7 @@ class BotManager:
             self.sell_triggered = False
         elif (self.trade_sell.is_closed == True
                 and max_rsi == self.rsi_5min_fast.value
-                and self.rsi_5min_fast.value >= 70
+                and self.rsi_5min_fast.value >= 60
                 and self.rsi_30min.value > self.rsi_1h.value
                 # and self.rsi_1h.value <= 40
                 # and self.rsi_1h.value > self.rsi_4h.value
