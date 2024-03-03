@@ -102,10 +102,10 @@ class TradeModel:
         if (devise != None and type != None):
             tradeList = list(MongoDB.database[TABLE_NAME].find(
                 {'devise': devise, 'type': type}).sort('opened_at', -1).limit(1))
-        if (devise == None and type != None):
+        elif (devise == None and type != None):
             tradeList = list(MongoDB.database[TABLE_NAME].find(
                 {'type': type}).sort('opened_at', -1).limit(1))
-        if (devise != None and type == None):
+        elif (devise != None and type == None):
             tradeList = list(MongoDB.database[TABLE_NAME].find(
                 {'devise': devise}).sort('opened_at', -1).limit(1))
         else:
