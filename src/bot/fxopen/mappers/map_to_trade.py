@@ -57,6 +57,10 @@ class FxOpenGetTradeByIdResponse:
 
 def map_to_trade(trade: FxOpenGetTradeByIdResponse) -> TradeModel:
     print('received trade by id : ', trade)
+    devise = trade['Symbol']
+    position_value = str(trade['InitialAmount'])
+    if (devise == 'BTCUSD'):
+        position_value = str(trade['Price'] * trade['InitialAmount'])
     created_timestamp = trade['Created']
     created_date = datetime.fromtimestamp(
         created_timestamp / 1000, tz=timezone.utc).isoformat()
@@ -70,9 +74,8 @@ def map_to_trade(trade: FxOpenGetTradeByIdResponse) -> TradeModel:
             trade['Modified'] / 1000, tz=timezone.utc).isoformat()
     return TradeModel(
         _id=trade["Comment"], status=status,
-        is_closed=is_closed, price=trade['Price'], position_value=str(
-            trade['InitialAmount']),
+        is_closed=is_closed, price=trade['Price'], position_value=position_value,
         take_profit=trade['TakeProfit'], stop_loss=trade['StopLoss'], type=TradeType(trade['Side']), close=0, profit=str(trade['Profit']), comission=trade['Commission'],
         fxopen_id=trade['Id'], opened_at_timestamp=created_timestamp, opened_at=created_date, closed_at=closed_at,
-        devise=trade['Symbol']
+        devise=devise
     )

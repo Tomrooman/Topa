@@ -2,6 +2,7 @@ parameters = {
     "FEES": 0.000035,  # 0.0035%
     "LEVERAGE": 5,
     "DIGITS": 5,
+    "MIN_LOT_SIZE": 0.01,
     "CANDLES_HISTORY_LENGTH": 12 * 12,  # 12 hours => 12 * HOURS
     "MIN_BUY_TAKE_PROFIT_PERCENTAGE": 0.001,
     "MIN_SELL_TAKE_PROFIT_PERCENTAGE": 0.001,

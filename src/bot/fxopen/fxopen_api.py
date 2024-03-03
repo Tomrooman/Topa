@@ -12,6 +12,7 @@ from .mappers.map_to_candles_list import map_to_candles_list
 from .mappers.map_to_trade import map_to_trade
 from .mappers.map_to_account_info import map_to_account_info
 from logger.logger_service import LoggerService
+import math
 
 Periodicity = Literal[
     "D1",
@@ -41,12 +42,12 @@ class FxOpenApi():
         else:
             raise Exception('Invalid environment')
 
-    def get_candles(self, timeframe: Periodicity, count: int):
+    def get_candles(self, devise: DeviseValues, timeframe: Periodicity, count: int):
         if (count > 999):
             raise Exception('Count must be less than 1000')
 
         timestamp = round(datetime.now(tz=timezone.utc).timestamp() * 1000)
-        url = f'/quotehistory/EURUSD/{timeframe}/bars/ask?count={-(count + 1)}&timestamp={timestamp}'
+        url = f'/quotehistory/{devise}/{timeframe}/bars/ask?count={-(count + 1)}&timestamp={timestamp}'
         data = ''
         # Last candle in the response is open
         response = self.api_request(
@@ -67,11 +68,16 @@ class FxOpenApi():
         return map_to_trade(response)
 
     # https://ttdemowebapi.fxopen.net:8443/api/doc/index#!/54132Trades32information32and32operations/Trade_Post
-    def create_trade(self, devise: DeviseValues, digits: int, side: Literal['Buy', 'Sell'], amount: int, stop_loss: float, take_profit: float, comment: ObjectId):
+    def create_trade(self, devise: DeviseValues, min_lot_size: float, min_trade_price: float, digits: int, side: Literal['Buy', 'Sell'], amount: int, stop_loss: float, take_profit: float, comment: ObjectId):
+        correct_amount = float(amount)
+        if (devise == 'BTCUSD'):
+            correct_amount = round(math.floor(
+                ((float(amount) / min_trade_price) * min_lot_size) * (10**digits)) / (10 ** digits), digits)
+        print(f'correct_amount: {correct_amount}')
         url = '/trade'
         data = json.dumps({
             "Symbol": devise,
-            "Amount": amount,
+            "Amount": correct_amount,
             "Side": side,
             "Type": "Market",
             "StopLoss": round(stop_loss, digits),

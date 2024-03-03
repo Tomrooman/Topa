@@ -101,10 +101,12 @@ class BotProd(BotManager):
             return
 
         position_value = self.get_position_value()
+        last_candle = self.get_last_candle()
+        min_trade_price = last_candle.close * self.MIN_LOT_SIZE
         new_trade_id = ObjectId()
         if (position == TradeType.BUY):
             fxopen_trade = self.fxopenApi.create_trade(
-                devise=self.devise, digits=self.DIGITS, side=position, amount=position_value, stop_loss=self.trade_buy.stop_loss, take_profit=self.trade_buy.take_profit, comment=new_trade_id)
+                devise=self.devise, digits=self.DIGITS, min_lot_size=self.MIN_LOT_SIZE, min_trade_price=min_trade_price, side=position, amount=position_value, stop_loss=self.trade_buy.stop_loss, take_profit=self.trade_buy.take_profit, comment=new_trade_id)
             self.trade_buy = fxopen_trade
             self.indicators_buy._id = ObjectId()
             self.indicators_buy.type = self.trade_buy.type
@@ -113,7 +115,7 @@ class BotProd(BotManager):
             self.trade_buy.save()
         elif (position == TradeType.SELL):
             fxopen_trade = self.fxopenApi.create_trade(
-                devise=self.devise, digits=self.DIGITS, side=position, amount=position_value, stop_loss=self.trade_sell.stop_loss, take_profit=self.trade_sell.take_profit, comment=new_trade_id)
+                devise=self.devise, min_lot_size=self.MIN_LOT_SIZE, min_trade_price=min_trade_price, digits=self.DIGITS, side=position, amount=position_value, stop_loss=self.trade_sell.stop_loss, take_profit=self.trade_sell.take_profit, comment=new_trade_id)
             self.trade_sell = fxopen_trade
             self.indicators_sell._id = ObjectId()
             self.indicators_sell.type = self.trade_sell.type
@@ -230,13 +232,13 @@ class BotProd(BotManager):
 
     def set_candles_list(self):
         self.candles_5min_list = self.fxopenApi.get_candles(
-            'M5', self.CANDLES_HISTORY_LENGTH)
+            self.devise, 'M5', self.CANDLES_HISTORY_LENGTH)
         self.candles_30min_list = self.fxopenApi.get_candles(
-            'M30', self.rsi_30min.period + 1)
+            self.devise, 'M30', self.rsi_30min.period + 1)
         self.candles_1h_list = self.fxopenApi.get_candles(
-            'H1', self.rsi_1h.period + 1)
+            self.devise, 'H1', self.rsi_1h.period + 1)
         self.candles_4h_list = self.fxopenApi.get_candles(
-            'H4', self.rsi_4h.period + 1)
+            self.devise, 'H4', self.rsi_4h.period + 1)
 
         self.loggerService.log(
             f'5min candle list length: {len(self.candles_5min_list)}')

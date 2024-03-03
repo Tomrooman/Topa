@@ -27,6 +27,7 @@ class BotManager:
     LEVERAGE: int
     CANDLES_HISTORY_LENGTH: int
     DIGITS: int
+    MIN_LOT_SIZE: float
     MIN_BUY_TAKE_PROFIT_PERCENTAGE: float
     MIN_SELL_TAKE_PROFIT_PERCENTAGE: float
     MAX_BUY_TAKE_PROFIT_PERCENTAGE: float
@@ -131,14 +132,14 @@ class BotManager:
         previous_candles = self.candles_5min_list[-self.CANDLES_HISTORY_LENGTH:]
         if (self.buy_triggered == True):
             if (self.rsi_5min_fast.value >= 30
-                # and self.rsi_5min_fast.value < self.rsi_5min.value
-                ):
+                        # and self.rsi_5min_fast.value < self.rsi_5min.value
+                    ):
                 self.buy_triggered = False
                 return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
         elif (self.sell_triggered == True):
             if (self.rsi_5min_fast.value <= 70
-                # and self.rsi_5min_fast.value > self.rsi_5min.value
-                ):
+                        # and self.rsi_5min_fast.value > self.rsi_5min.value
+                    ):
                 self.sell_triggered = False
                 return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
 
@@ -148,7 +149,7 @@ class BotManager:
                 and self.rsi_30min.value < self.rsi_1h.value
                 # and self.rsi_1h.value >= 60
                 # and self.rsi_1h.value < self.rsi_4h.value
-            ):  # BUY
+                ):  # BUY
             # return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
             self.buy_triggered = True
             self.sell_triggered = False
@@ -225,11 +226,14 @@ class BotManager:
 
     def get_position_value(self) -> int:
         if (self.devise == 'BTCUSD'):
-            return int(math.floor(self.balance * self.LEVERAGE))
+            last_candle = self.get_last_candle()
+            min_trade_price = last_candle.close * self.MIN_LOT_SIZE
+            max_lot = math.floor(
+                (self.balance * self.LEVERAGE) / min_trade_price)
+            return int(max_lot * min_trade_price)
 
         lot_price = 100000
-        min_lot_size = 0.01
-        min_trade_price = lot_price * min_lot_size
+        min_trade_price = lot_price * self.MIN_LOT_SIZE
 
         if (self.balance < min_trade_price):
             raise Exception(
