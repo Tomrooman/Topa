@@ -27,6 +27,6 @@
     "create:requirements:file": "pip3 freeze > requirements.txt",
     "docker:deploy:bot:demo": "npm run docker:build:bot:demo && npm run docker:push:bot:demo",
     "docker:push:bot:demo": "export $(cat .env | grep MY_VPS_IP) && export $(cat .env | grep REGISTRY_PWD) && export $(cat .env | grep REGISTRY_USER) && export $(cat .env | grep REGISTRY_PORT) && docker login -u $REGISTRY_USER -p $REGISTRY_PWD $MY_VPS_IP:$REGISTRY_PORT && docker push $MY_VPS_IP:$REGISTRY_PORT/topa-bot-demo",
-    "docker:build:bot:demo": "export $(cat .env | grep MY_VPS_IP) && export $(cat .env | grep REGISTRY_PORT) && npm run create:requirements:file && docker build --pull --no-cache -f dockerfiles/demo.bot.dockerfile -t $MY_VPS_IP:$REGISTRY_PORT/topa-bot-demo ."
+    "docker:build:bot:demo": "export $(cat .env | grep MY_VPS_IP) && export $(cat .env | grep REGISTRY_PORT) && npm run create:requirements:file && docker build --pull --no-cache --build-arg environment=demo --build-arg devise=EURUSD -f dockerfiles/deploy.bot.dockerfile -t $MY_VPS_IP:$REGISTRY_PORT/topa-bot-demo ."
   }
 }
