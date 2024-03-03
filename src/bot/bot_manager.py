@@ -32,6 +32,7 @@ class BotManager:
     MIN_SELL_TAKE_PROFIT_PERCENTAGE: float
     MAX_BUY_TAKE_PROFIT_PERCENTAGE: float
     MAX_SELL_TAKE_PROFIT_PERCENTAGE: float
+    STOP_LOSS_PERCENTAGE_FROM_TP: float
 
     START_TRADE_HOUR: int
     END_TRADE_HOUR: int
@@ -181,14 +182,16 @@ class BotManager:
         if (highest_previous_price < max_take_profit_price):
             self.trade_buy.take_profit = highest_previous_price
             self.trade_buy.stop_loss = current_candle.close - \
-                ((highest_previous_price - current_candle.close) * 0.25)
+                ((highest_previous_price - current_candle.close)
+                 * self.STOP_LOSS_PERCENTAGE_FROM_TP)
             # if (self.trade_buy.stop_loss < min_stop_loss_price):
             #     self.trade_buy.stop_loss = min_stop_loss_price
             return {'position': TradeType.BUY, "profit_percentage": profit_percentage}
         if (highest_previous_price >= max_take_profit_price):
             self.trade_buy.take_profit = max_take_profit_price
             self.trade_buy.stop_loss = current_candle.close - \
-                ((max_take_profit_price - current_candle.close) * 0.25)
+                ((max_take_profit_price - current_candle.close)
+                 * self.STOP_LOSS_PERCENTAGE_FROM_TP)
             # self.trade_buy.stop_loss = min_stop_loss_price
             return {'position': TradeType.BUY, "profit_percentage": profit_percentage}
 
@@ -211,14 +214,16 @@ class BotManager:
         if (lowest_previous_price > min_take_profit_price):
             self.trade_sell.take_profit = lowest_previous_price
             self.trade_sell.stop_loss = current_candle.close + \
-                ((current_candle.close - lowest_previous_price) * 0.25)
+                ((current_candle.close - lowest_previous_price)
+                 * self.STOP_LOSS_PERCENTAGE_FROM_TP)
             # if (self.trade_sell.stop_loss > max_stop_loss_price):
             #     self.trade_sell.stop_loss = max_stop_loss_price
             return {'position': TradeType.SELL, "profit_percentage": profit_percentage}
         if (lowest_previous_price <= min_take_profit_price):
             self.trade_sell.take_profit = min_take_profit_price
             self.trade_sell.stop_loss = current_candle.close + \
-                ((current_candle.close - min_take_profit_price) * 0.25)
+                ((current_candle.close - min_take_profit_price)
+                 * self.STOP_LOSS_PERCENTAGE_FROM_TP)
             # self.trade_sell.stop_loss = max_stop_loss_price
             return {'position': TradeType.SELL, "profit_percentage": profit_percentage}
 
