@@ -56,7 +56,7 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
             if ("Profit" in parsed_message["Result"] and parsed_message["Result"]["Event"] == 'Filled'):
                 self.loggerService.log('trade closed')
                 profit = parsed_message["Result"]["Profit"]["Value"]
-                close_price = parsed_message["Result"]["Trade"]["Price"]
+                close_price = parsed_message["Result"]["Fill"]["Price"]
                 closed_at = parsed_message["Result"]["Trade"]["Modified"]
                 comission = parsed_message["Result"]["Trade"]["Commission"]
                 side = parsed_message["Result"]["Trade"]["Side"]
