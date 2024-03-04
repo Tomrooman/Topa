@@ -2,11 +2,13 @@ from dataclasses import dataclass
 import math
 from typing import Literal
 from bson import ObjectId
-from database.models.trade_model import TradeModel, TradeType, TradeTypeValues
+from database.models.trade_model import DeviseValues, TradeModel, TradeType, TradeTypeValues
 from database.models.indicators_model import IndicatorsModel
 from candle import Candle
 from indicators import get_rsi
 from datetime import datetime, timezone
+from parameters.EURUSD import Parameters_EURUSD
+from parameters.BTCUSD import Parameters_BTCUSD
 
 # Sydney is open from 9:00 to 18:00 am UTC
 # Tokyo is open from 0:00 to 9:00 UTC
@@ -21,47 +23,80 @@ class RsiData:
 
 
 class BotManager:
-    FEES = 0.000035  # 0.0035%
-    LEVERAGE = 5
-    CANDLES_HISTORY_LENGTH = 12 * 12  # 12 hours => 12 * HOURS
-    MIN_BUY_TAKE_PROFIT_PERCENTAGE = 0.001
-    MIN_SELL_TAKE_PROFIT_PERCENTAGE = 0.001
-    MAX_BUY_TAKE_PROFIT_PERCENTAGE = 0.005
-    MAX_SELL_TAKE_PROFIT_PERCENTAGE = 0.005
-    # MAX_LOSS_PERCENTAGE = 0.00125
+    FEES: float
+    LEVERAGE: int
+    CANDLES_HISTORY_LENGTH: int
+    DIGITS: int
+    MIN_LOT_SIZE: float
+    MIN_BUY_TAKE_PROFIT_PERCENTAGE: float
+    MIN_SELL_TAKE_PROFIT_PERCENTAGE: float
+    MAX_BUY_TAKE_PROFIT_PERCENTAGE: float
+    MAX_SELL_TAKE_PROFIT_PERCENTAGE: float
+    STOP_LOSS_PERCENTAGE_FROM_TP: float
 
-    START_TRADE_HOUR = 1
-    END_TRADE_HOUR = 19
-    START_CUSTOM_CLOSE_HOUR = 20
-    END_CUSTOM_CLOSE_HOUR = 21
+    START_TRADE_HOUR: int
+    END_TRADE_HOUR: int
+    START_CUSTOM_CLOSE_HOUR: int
+    END_CUSTOM_CLOSE_HOUR: int
 
+    devise: DeviseValues
     balance: float = 2000
     max_balance: float = balance
     max_drawdown: float = 0
     current_drawdown: float = 0
-    trade_buy = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value='0', status='New',
-                           take_profit=0, stop_loss=0, type=TradeType(TradeType.BUY), close=0, profit='0', comission=0,
-                           fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='')
-    trade_sell = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value='0', status='New',
-                            take_profit=0, stop_loss=0, type=TradeType(TradeType.SELL), close=0, profit='0', comission=0,
-                            fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='')
-    indicators_buy = IndicatorsModel(_id=ObjectId(), trade_id=trade_buy._id, profit='0', type=TradeType(TradeType.BUY),
-                                     rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0)
-    indicators_sell = IndicatorsModel(_id=ObjectId(), trade_id=trade_buy._id, profit='0', type=TradeType(TradeType.SELL),
-                                      rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0)
-    rsi_5min = RsiData(value=0, period=11)
-    rsi_5min_fast = RsiData(value=0, period=7)
-    rsi_30min = RsiData(value=0, period=7)
-    rsi_1h = RsiData(value=0, period=3)
-    rsi_4h = RsiData(value=0, period=3)
+    trade_buy: TradeModel
+    trade_sell: TradeModel
+    indicators_buy: IndicatorsModel
+    indicators_sell: IndicatorsModel
+    rsi_5min: RsiData
+    rsi_5min_fast: RsiData
+    rsi_30min: RsiData
+    rsi_1h: RsiData
+    rsi_4h: RsiData
 
     buy_triggered = False
     sell_triggered = False
+
+    parameters: Parameters_EURUSD | Parameters_BTCUSD
 
     candles_5min_list: list[Candle] = []
     candles_30min_list: list[Candle] = []
     candles_1h_list: list[Candle] = []
     candles_4h_list: list[Candle] = []
+
+    def setDevise(self, devise: DeviseValues):
+        self.devise = devise
+
+        if (devise == 'BTCUSD'):
+            self.parameters = Parameters_BTCUSD()
+
+        if (devise == 'EURUSD'):
+            self.parameters = Parameters_EURUSD()
+
+        for (key, value) in self.parameters.parameters.items():
+            setattr(self, key, value)
+
+        self.rsi_5min = RsiData(
+            value=0, period=self.parameters.rsi_periods['rsi_5min'])
+        self.rsi_5min_fast = RsiData(
+            value=0, period=self.parameters.rsi_periods['rsi_5min_fast'])
+        self.rsi_30min = RsiData(
+            value=0, period=self.parameters.rsi_periods['rsi_30min'])
+        self.rsi_1h = RsiData(
+            value=0, period=self.parameters.rsi_periods['rsi_1h'])
+        self.rsi_4h = RsiData(
+            value=0, period=self.parameters.rsi_periods['rsi_4h'])
+
+        self.trade_buy = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value='0', status='New',
+                                    take_profit=0, stop_loss=0, type=TradeType(TradeType.BUY), close=0, profit='0', comission=0,
+                                    fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='', devise=self.devise)
+        self.trade_sell = TradeModel(_id=ObjectId(), is_closed=True, price=0, position_value='0', status='New',
+                                     take_profit=0, stop_loss=0, type=TradeType(TradeType.SELL), close=0, profit='0', comission=0,
+                                     fxopen_id='', opened_at='', opened_at_timestamp=0, closed_at='',  devise=self.devise)
+        self.indicators_buy = IndicatorsModel(_id=ObjectId(), trade_id=self.trade_buy._id, profit='0', type=TradeType(TradeType.BUY),
+                                              rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0,  devise=self.devise)
+        self.indicators_sell = IndicatorsModel(_id=ObjectId(), trade_id=self.trade_sell._id, profit='0', type=TradeType(TradeType.SELL),
+                                               rsi_5min=0, rsi_5min_fast=0, rsi_30min=0, rsi_1h=0, rsi_4h=0,  devise=self.devise)
 
     def get_last_candle(self):
         return self.candles_5min_list[-1]
@@ -111,35 +146,19 @@ class BotManager:
                       self.rsi_1h.value, self.rsi_4h.value)
         previous_candles = self.candles_5min_list[-self.CANDLES_HISTORY_LENGTH:]
         if (self.buy_triggered == True):
-            if (self.rsi_5min_fast.value >= 30
-                # and self.rsi_5min_fast.value < self.rsi_5min.value
-                ):
+            if (self.parameters.buy_take_position(self)):
                 self.buy_triggered = False
                 return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
         elif (self.sell_triggered == True):
-            if (self.rsi_5min_fast.value <= 70
-                # and self.rsi_5min_fast.value > self.rsi_5min.value
-                ):
+            if (self.parameters.sell_take_position(self)):
                 self.sell_triggered = False
                 return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
 
-        if (self.trade_buy.is_closed == True
-                and min_rsi == self.rsi_5min_fast.value
-                and self.rsi_5min_fast.value <= 40
-                and self.rsi_30min.value < self.rsi_1h.value
-                # and self.rsi_1h.value >= 60
-                # and self.rsi_1h.value < self.rsi_4h.value
-            ):  # BUY
+        if (self.trade_buy.is_closed == True and self.parameters.buy_trigger(min_rsi, self)):  # BUY
             # return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
             self.buy_triggered = True
             self.sell_triggered = False
-        elif (self.trade_sell.is_closed == True
-                and max_rsi == self.rsi_5min_fast.value
-                and self.rsi_5min_fast.value >= 60
-                and self.rsi_30min.value > self.rsi_1h.value
-                # and self.rsi_1h.value <= 40
-                # and self.rsi_1h.value > self.rsi_4h.value
-              ):  # SELL
+        elif (self.trade_sell.is_closed == True and self.parameters.sell_trigger(max_rsi, self)):  # SELL
             # return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
             self.sell_triggered = True
             self.buy_triggered = False
@@ -163,14 +182,16 @@ class BotManager:
         if (highest_previous_price < max_take_profit_price):
             self.trade_buy.take_profit = highest_previous_price
             self.trade_buy.stop_loss = current_candle.close - \
-                ((highest_previous_price - current_candle.close) * 0.25)
+                ((highest_previous_price - current_candle.close)
+                 * self.STOP_LOSS_PERCENTAGE_FROM_TP)
             # if (self.trade_buy.stop_loss < min_stop_loss_price):
             #     self.trade_buy.stop_loss = min_stop_loss_price
             return {'position': TradeType.BUY, "profit_percentage": profit_percentage}
         if (highest_previous_price >= max_take_profit_price):
             self.trade_buy.take_profit = max_take_profit_price
             self.trade_buy.stop_loss = current_candle.close - \
-                ((max_take_profit_price - current_candle.close) * 0.25)
+                ((max_take_profit_price - current_candle.close)
+                 * self.STOP_LOSS_PERCENTAGE_FROM_TP)
             # self.trade_buy.stop_loss = min_stop_loss_price
             return {'position': TradeType.BUY, "profit_percentage": profit_percentage}
 
@@ -193,21 +214,29 @@ class BotManager:
         if (lowest_previous_price > min_take_profit_price):
             self.trade_sell.take_profit = lowest_previous_price
             self.trade_sell.stop_loss = current_candle.close + \
-                ((current_candle.close - lowest_previous_price) * 0.25)
+                ((current_candle.close - lowest_previous_price)
+                 * self.STOP_LOSS_PERCENTAGE_FROM_TP)
             # if (self.trade_sell.stop_loss > max_stop_loss_price):
             #     self.trade_sell.stop_loss = max_stop_loss_price
             return {'position': TradeType.SELL, "profit_percentage": profit_percentage}
         if (lowest_previous_price <= min_take_profit_price):
             self.trade_sell.take_profit = min_take_profit_price
             self.trade_sell.stop_loss = current_candle.close + \
-                ((current_candle.close - min_take_profit_price) * 0.25)
+                ((current_candle.close - min_take_profit_price)
+                 * self.STOP_LOSS_PERCENTAGE_FROM_TP)
             # self.trade_sell.stop_loss = max_stop_loss_price
             return {'position': TradeType.SELL, "profit_percentage": profit_percentage}
 
     def get_position_value(self) -> int:
+        if (self.devise == 'BTCUSD'):
+            last_candle = self.get_last_candle()
+            min_trade_price = last_candle.close * self.MIN_LOT_SIZE
+            max_lot = math.floor(
+                (self.balance * self.LEVERAGE) / min_trade_price)
+            return int(max_lot * min_trade_price)
+
         lot_price = 100000
-        min_lot_size = 0.01
-        min_trade_price = lot_price * min_lot_size
+        min_trade_price = lot_price * self.MIN_LOT_SIZE
 
         if (self.balance < min_trade_price):
             raise Exception(

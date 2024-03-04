@@ -1,5 +1,4 @@
 from datetime import datetime, timezone
-from dateutil import relativedelta
 from bson import ObjectId
 import sys  # NOQA
 import os  # NOQA
@@ -11,7 +10,7 @@ from bot.fxopen.fxopen_trade_websocket import BotServiceSharedTradeFunctions, Fx
 from bot.fxopen.fxopen_feed_websocket import BotServiceSharedFeedFunctions, FxOpenFeedWebsocket
 from bot.bot_manager import BotManager
 from bot.fxopen.fxopen_api import FxOpenApi, Periodicity
-from database.models.trade_model import TradeModel, TradeType, TradeTypeValues
+from database.models.trade_model import DeviseType, TradeModel, TradeType, TradeTypeValues
 from config.config_service import ConfigService
 from logger.logger_service import LoggerService
 
@@ -31,10 +30,13 @@ class BotProd(BotManager):
         else:
             raise Exception('Invalid environment')
 
+        devise = "EURUSD" if len(sys.argv) < 3 else sys.argv[2]
+        devise = DeviseType(devise).value
+        self.setDevise(devise)
         self.fxopenApi = FxOpenApi(self.environment)
 
     def start(self):
-        self.loggerService.log(f'start {self.environment}')
+        self.loggerService.log(f'start {self.environment} {self.devise}')
         self.startup_data(True)
 
         trade_websocket_shared_functions = BotServiceSharedTradeFunctions(
@@ -43,13 +45,14 @@ class BotProd(BotManager):
             startup_data=self.startup_data
         )
         FxOpenTradeWebsocket(
-            self.environment, trade_websocket_shared_functions)
+            self.environment, self.devise, trade_websocket_shared_functions)
 
         feed_websocket_shared_functions = BotServiceSharedFeedFunctions(
             handle_new_candle_from_websocket=self.handle_new_candle_from_websocket,
             startup_data=self.startup_data
         )
-        FxOpenFeedWebsocket(self.environment, feed_websocket_shared_functions)
+        FxOpenFeedWebsocket(self.environment, self.devise,
+                            feed_websocket_shared_functions)
 
     def startup_data(self, startup=False):
         self.loggerService.log(f'startup data {self.environment}')
@@ -98,10 +101,12 @@ class BotProd(BotManager):
             return
 
         position_value = self.get_position_value()
+        last_candle = self.get_last_candle()
+        min_trade_price = last_candle.close * self.MIN_LOT_SIZE
         new_trade_id = ObjectId()
         if (position == TradeType.BUY):
             fxopen_trade = self.fxopenApi.create_trade(
-                side=position, amount=position_value, stop_loss=self.trade_buy.stop_loss, take_profit=self.trade_buy.take_profit, comment=new_trade_id)
+                devise=self.devise, digits=self.DIGITS, min_lot_size=self.MIN_LOT_SIZE, min_trade_price=min_trade_price, side=position, amount=position_value, stop_loss=self.trade_buy.stop_loss, take_profit=self.trade_buy.take_profit, comment=new_trade_id)
             self.trade_buy = fxopen_trade
             self.indicators_buy._id = ObjectId()
             self.indicators_buy.type = self.trade_buy.type
@@ -110,7 +115,7 @@ class BotProd(BotManager):
             self.trade_buy.save()
         elif (position == TradeType.SELL):
             fxopen_trade = self.fxopenApi.create_trade(
-                side=position, amount=position_value, stop_loss=self.trade_sell.stop_loss, take_profit=self.trade_sell.take_profit, comment=new_trade_id)
+                devise=self.devise, min_lot_size=self.MIN_LOT_SIZE, min_trade_price=min_trade_price, digits=self.DIGITS, side=position, amount=position_value, stop_loss=self.trade_sell.stop_loss, take_profit=self.trade_sell.take_profit, comment=new_trade_id)
             self.trade_sell = fxopen_trade
             self.indicators_sell._id = ObjectId()
             self.indicators_sell.type = self.trade_sell.type
@@ -196,8 +201,8 @@ class BotProd(BotManager):
         self.loggerService.log(f"refreshed balance: {self.balance}")
 
     def refresh_trades(self):
-        trade_buy = TradeModel.findLast(TradeType.BUY)
-        trade_sell = TradeModel.findLast(TradeType.SELL)
+        trade_buy = TradeModel.findLast(TradeType.BUY, self.devise)
+        trade_sell = TradeModel.findLast(TradeType.SELL, self.devise)
         for trade in [trade_buy, trade_sell]:
             if (trade is not None and trade.fxopen_id != ''):
                 fxopen_trade = self.fxopenApi.get_trade_by_id(trade.fxopen_id)
@@ -227,13 +232,13 @@ class BotProd(BotManager):
 
     def set_candles_list(self):
         self.candles_5min_list = self.fxopenApi.get_candles(
-            'M5', self.CANDLES_HISTORY_LENGTH)
+            self.devise, 'M5', self.CANDLES_HISTORY_LENGTH)
         self.candles_30min_list = self.fxopenApi.get_candles(
-            'M30', self.rsi_30min.period + 1)
+            self.devise, 'M30', self.rsi_30min.period + 1)
         self.candles_1h_list = self.fxopenApi.get_candles(
-            'H1', self.rsi_1h.period + 1)
+            self.devise, 'H1', self.rsi_1h.period + 1)
         self.candles_4h_list = self.fxopenApi.get_candles(
-            'H4', self.rsi_4h.period + 1)
+            self.devise, 'H4', self.rsi_4h.period + 1)
 
         self.loggerService.log(
             f'5min candle list length: {len(self.candles_5min_list)}')

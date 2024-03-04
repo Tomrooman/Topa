@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from bson import ObjectId
 from database.instance import MongoDB
-from database.models.trade_model import TradeType
+from database.models.trade_model import DeviseValues, TradeType
 
 
 TABLE_NAME = 'indicators'
@@ -13,6 +13,7 @@ class IndicatorsModel:
     _id: ObjectId
     trade_id: ObjectId
     type: TradeType
+    devise: DeviseValues
     profit: str
     rsi_5min: float
     rsi_5min_fast: float
@@ -29,6 +30,7 @@ class IndicatorsModel:
             "_id": self._id if for_database == True else str(self._id),
             'trade_id': self.trade_id if for_database == True else str(self.trade_id),
             'type': self.type.value,
+            'devise': self.devise,
             'profit': self.profit,
             'rsi_5min': self.rsi_5min,
             'rsi_5min_fast': self.rsi_5min_fast,

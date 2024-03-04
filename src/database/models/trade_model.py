@@ -8,6 +8,19 @@ from database.instance import MongoDB
 TABLE_NAME = 'trades'
 
 TradeTypeValues = Literal['Buy', 'Sell']
+DeviseValues = Literal['EURUSD', 'BTCUSD']
+
+
+class DeviseType:
+    EURUSD = 'EURUSD'
+    BTCUSD = 'BTCUSD'
+    value: DeviseValues
+
+    def __init__(self, devise: str):
+        if devise != self.EURUSD and devise != self.BTCUSD:
+            raise Exception(
+                'Invalid devise {devise}, must be either {self.EURUSD} or {self.BTCUSD}')
+        self.value = devise
 
 
 class TradeType:
@@ -29,6 +42,7 @@ class TradeModel:
     price: float
     status: Literal['New', 'Calculated', 'Filled', 'Canceled', 'Rejected',
                     'Expired', 'PartiallyFilled', 'Activated', 'Executing', 'Invalid']
+    devise: DeviseValues
     position_value: str
     take_profit: float
     stop_loss: float
@@ -48,6 +62,7 @@ class TradeModel:
             is_closed=trade['is_closed'],
             price=trade['price'],
             status=trade['status'],
+            devise=trade['devise'],
             position_value=trade['position_value'],
             take_profit=trade['take_profit'],
             stop_loss=trade['stop_loss'],
@@ -68,6 +83,7 @@ class TradeModel:
             is_closed=trade['is_closed'],
             price=trade['price'],
             status=trade['status'],
+            devise=trade['devise'],
             position_value=trade['position_value'],
             take_profit=trade['take_profit'],
             stop_loss=trade['stop_loss'],
@@ -82,10 +98,16 @@ class TradeModel:
         ), list(MongoDB.database[TABLE_NAME].find())))
 
     @staticmethod
-    def findLast(type: TradeTypeValues | None):
-        if (type != None):
+    def findLast(type: TradeTypeValues | None, devise: DeviseValues | None):
+        if (devise != None and type != None):
+            tradeList = list(MongoDB.database[TABLE_NAME].find(
+                {'devise': devise, 'type': type}).sort('opened_at', -1).limit(1))
+        elif (devise == None and type != None):
             tradeList = list(MongoDB.database[TABLE_NAME].find(
                 {'type': type}).sort('opened_at', -1).limit(1))
+        elif (devise != None and type == None):
+            tradeList = list(MongoDB.database[TABLE_NAME].find(
+                {'devise': devise}).sort('opened_at', -1).limit(1))
         else:
             tradeList = list(MongoDB.database[TABLE_NAME].find().sort(
                 'opened_at', -1).limit(1))
@@ -100,6 +122,7 @@ class TradeModel:
             is_closed=trade['is_closed'],
             price=trade['price'],
             status=trade['status'],
+            devise=trade['devise'],
             position_value=trade['position_value'],
             take_profit=trade['take_profit'],
             stop_loss=trade['stop_loss'],
@@ -123,6 +146,7 @@ class TradeModel:
             'is_closed': self.is_closed,
             'price': self.price,
             'status': self.status,
+            'devise': self.devise,
             'position_value': self.position_value,
             'take_profit': self.take_profit,
             'stop_loss': self.stop_loss,

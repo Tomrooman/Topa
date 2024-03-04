@@ -8,7 +8,7 @@ import os  # NOQA
 parent_dir = os.path.dirname(os.path.realpath(__file__))  # NOQA
 sys.path.append(parent_dir + '/..')  # NOQA
 from bot.bot_manager import BotManager
-from database.models.trade_model import TradeModel, TradeType, TradeTypeValues
+from database.models.trade_model import DeviseType, TradeModel, TradeType, TradeTypeValues
 from database.models.indicators_model import IndicatorsModel
 from bot.candle import Candle, create_from_csv_line
 from api.routes.stats.stats_service import StatsService
@@ -17,12 +17,6 @@ from logger.logger_service import LoggerService
 
 class BotDev(BotManager):
     loggerService = LoggerService()
-    open_file_5min = pd.read_csv(
-        "data/formatted/EURUSD_5min.csv", chunksize=1)
-    open_file_30min = pd.read_csv(
-        "data/formatted/EURUSD_30min.csv", chunksize=1)
-    open_file_1h = pd.read_csv("data/formatted/EURUSD_1h.csv", chunksize=1)
-    open_file_4h = pd.read_csv("data/formatted/EURUSD_4h.csv", chunksize=1)
     stdscr = curses.initscr()
     opened_both_side_count = 0
 
@@ -36,6 +30,18 @@ class BotDev(BotManager):
     candle_4h_start_date = None
 
     def start(self):
+        devise = "EURUSD" if len(sys.argv) < 2 else sys.argv[1]
+        devise = DeviseType(devise).value
+        self.setDevise(devise)
+        self.open_file_5min = pd.read_csv(
+            f"data/formatted/{devise}_5min.csv", chunksize=1)
+        self.open_file_30min = pd.read_csv(
+            f"data/formatted/{devise}_30min.csv", chunksize=1)
+        self.open_file_1h = pd.read_csv(
+            f"data/formatted/{devise}_1h.csv", chunksize=1)
+        self.open_file_4h = pd.read_csv(
+            f"data/formatted/{devise}_4h.csv", chunksize=1)
+
         f = open("data/diff_to_high.txt", "w")
         f.write("")
         f.close()
@@ -97,6 +103,8 @@ class BotDev(BotManager):
                                    f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
                 self.stdscr.addstr(10, 0,
                                    f'Max drawdown: {self.max_drawdown}%')
+                self.stdscr.addstr(11, 0,
+                                   f'Devise: {"EURUSD" if len(sys.argv) < 2 else sys.argv[1]}')
                 try:
                     candle_5min = self.set_candles_list(candle_5min)
                 except Exception as e:
@@ -107,7 +115,7 @@ class BotDev(BotManager):
                         self.set_all_rsi()
                     if (self.rsi_5min.value != 0 and self.rsi_30min.value != 0 and self.rsi_1h.value != 0 and self.rsi_4h.value != 0):
                         self.test_strategy()
-                    self.stdscr.addstr(11, 0, '----------')
+                    self.stdscr.addstr(12, 0, '----------')
                     self.stdscr.refresh()
             curses.endwin()
             self.print_final_backtest_message()
@@ -144,6 +152,9 @@ class BotDev(BotManager):
             f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€', False, '\n', '')
         self.loggerService.log(
             f'Max drawdown: {self.max_drawdown}%', False, '\n', '')
+        self.loggerService.log(
+            f'Devise: {self.devise}', False, '\n', ''
+        )
 
         stats = json.loads(StatsService().handle_route())
         losing_months = stats["analytics"]["losingMonths"]

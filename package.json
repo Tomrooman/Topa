@@ -5,9 +5,12 @@
   "author": "Tom Rooman",
   "main": "index.js",
   "scripts": {
-    "start:bot:dev": "python3 src/bot/bot_dev.py",
-    "start:bot:demo": "python3 src/bot/bot_prod.py demo",
-    "start:bot:prod": "python3 src/bot/bot_prod.py prod",
+    "start:bot:dev": "python3 src/bot/bot_dev.py EURUSD",
+    "start:bot:demo": "python3 src/bot/bot_prod.py demo EURUSD",
+    "start:bot:prod": "python3 src/bot/bot_prod.py prod EURUSD",
+    "start:bot:crypto:dev": "python3 src/bot/bot_dev.py BTCUSD",
+    "start:bot:crypto:demo": "python3 src/bot/bot_prod.py demo BTCUSD",
+    "start:bot:crypto:prod": "python3 src/bot/bot_prod.py prod BTCUSD",
     "start:api:dev": "flask --app src/api/api.py run --debug",
     "start:api:prod": "python3 src/api/api.py",
     "stats": "python3 src/bot/stats.py",
@@ -15,11 +18,15 @@
     "convert:30min": "python3 src/utils/convert_historical_csv_to_30min_candles.py",
     "convert:1h": "python3 src/utils/convert_historical_csv_to_1h_candles.py",
     "convert:4h": "python3 src/utils/convert_historical_csv_to_4h_candles.py",
+    "convert:crypto:5min": "python3 src/utils/crypto/convert_historical_csv_to_5min_candles.py",
+    "convert:crypto:30min": "python3 src/utils/crypto/convert_historical_csv_to_30min_candles.py",
+    "convert:crypto:1h": "python3 src/utils/crypto/convert_historical_csv_to_1h_candles.py",
+    "convert:crypto:4h": "python3 src/utils/crypto/convert_historical_csv_to_4h_candles.py",
     "daily_candles": "python3 src/utils/create_daily_candles_files.py",
     "test": "echo \"Error: no test specified\" && exit 1",
     "create:requirements:file": "pip3 freeze > requirements.txt",
     "docker:deploy:bot:demo": "npm run docker:build:bot:demo && npm run docker:push:bot:demo",
     "docker:push:bot:demo": "export $(cat .env | grep MY_VPS_IP) && export $(cat .env | grep REGISTRY_PWD) && export $(cat .env | grep REGISTRY_USER) && export $(cat .env | grep REGISTRY_PORT) && docker login -u $REGISTRY_USER -p $REGISTRY_PWD $MY_VPS_IP:$REGISTRY_PORT && docker push $MY_VPS_IP:$REGISTRY_PORT/topa-bot-demo",
-    "docker:build:bot:demo": "export $(cat .env | grep MY_VPS_IP) && export $(cat .env | grep REGISTRY_PORT) && npm run create:requirements:file && docker build --pull --no-cache -f dockerfiles/demo.bot.dockerfile -t $MY_VPS_IP:$REGISTRY_PORT/topa-bot-demo ."
+    "docker:build:bot:demo": "export $(cat .env | grep MY_VPS_IP) && export $(cat .env | grep REGISTRY_PORT) && npm run create:requirements:file && docker build --pull --no-cache --build-arg environment=demo --build-arg devise=EURUSD -f dockerfiles/deploy.bot.dockerfile -t $MY_VPS_IP:$REGISTRY_PORT/topa-bot-demo ."
   }
 }
