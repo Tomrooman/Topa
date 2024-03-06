@@ -31,7 +31,7 @@ class FxOpenWebsocketManager:
                 "WebApiKey": self.configService.get_web_api_key(),
                 "Timestamp": timestamp,
                 "Signature": base64HmacSignature,
-                "DeviceId":  "123",
-                "AppSessionId":  "123"
+                "DeviceId":  websocket_id,
+                "AppSessionId":  websocket_id
             }
         }))
