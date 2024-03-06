@@ -117,4 +117,5 @@ class FxOpenFeedWebsocket(FxOpenWebsocketManager):
                                     on_message=self.on_message,
                                     on_error=self.on_error,
                                     on_close=self.on_close)
-        Thread(target=ws.run_forever).start()
+        Thread(target=lambda: ws.run_forever(
+            ping_interval=20, ping_timeout=3)).start()
