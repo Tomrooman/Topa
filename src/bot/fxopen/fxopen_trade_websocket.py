@@ -30,7 +30,7 @@ class FxOpenTradeWebsocket(FxOpenWebsocketManager):
             self.websocket_trade_url = 'wss://ttlivewebapi.fxopen.net:3001'
             self.id += f'-prod-{devise}'
         elif (environment == 'demo'):
-            self.websocket_trade_url = 'wss://ttdemowebapi.soft-fx.com:2087'
+            self.websocket_trade_url = 'wss://marginalttdemowebapi.fxopen.net:2087'
             self.id += f'-demo-{devise}'
         else:
             raise Exception('Invalid environment')

@@ -30,7 +30,7 @@ class FxOpenFeedWebsocket(FxOpenWebsocketManager):
             self.websocket_feed_url = 'wss://ttlivewebapi.fxopen.net:3000'
             self.id += f'-prod-{devise}'
         elif (environment == 'demo'):
-            self.websocket_feed_url = 'wss://ttdemowebapi.soft-fx.com:2083'
+            self.websocket_feed_url = 'wss://marginalttdemowebapi.fxopen.net:2083'
             self.id += f'-demo-{devise}'
         else:
             raise Exception('Invalid environment')

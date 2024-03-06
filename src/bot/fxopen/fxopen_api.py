@@ -38,7 +38,7 @@ class FxOpenApi():
         if (environment == 'prod'):
             self.api_url = 'https://ttlivewebapi.fxopen.net:8443/api/v2'
         elif (environment == 'demo'):
-            self.api_url = 'https://ttdemowebapi.fxopen.net:8443/api/v2'
+            self.api_url = 'https://marginalttdemowebapi.fxopen.net:8443/api/v2'
         else:
             raise Exception('Invalid environment')
 
