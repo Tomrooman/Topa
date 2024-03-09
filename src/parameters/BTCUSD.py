@@ -16,9 +16,9 @@ class Parameters_BTCUSD():
         "MAX_SELL_TAKE_PROFIT_PERCENTAGE": 0.03,
         "STOP_LOSS_PERCENTAGE_FROM_TP": 0.5,
         "START_TRADE_HOUR": 1,
-        "END_TRADE_HOUR": 19,
-        "START_CUSTOM_CLOSE_HOUR": 20,
-        "END_CUSTOM_CLOSE_HOUR": 21
+        "END_TRADE_HOUR": 18,
+        "START_CUSTOM_CLOSE_HOUR": 19,
+        "END_CUSTOM_CLOSE_HOUR": 20
     }
     rsi_periods = {
         "rsi_5min": 11,
