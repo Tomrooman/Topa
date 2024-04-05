@@ -1,3 +1,4 @@
+from ast import Raise
 from datetime import datetime, timezone
 from bson import ObjectId
 import pandas as pd
@@ -34,13 +35,13 @@ class BotDev(BotManager):
         devise = DeviseType(devise).value
         self.setDevise(devise)
         self.open_file_5min = pd.read_csv(
-            f"data/formatted/{devise}_5min.csv", chunksize=1)
+            f"data/month_debug/{devise}_5min.csv", chunksize=1)
         self.open_file_30min = pd.read_csv(
-            f"data/formatted/{devise}_30min.csv", chunksize=1)
+            f"data/month_debug/{devise}_30min.csv", chunksize=1)
         self.open_file_1h = pd.read_csv(
-            f"data/formatted/{devise}_1h.csv", chunksize=1)
+            f"data/month_debug/{devise}_1h.csv", chunksize=1)
         self.open_file_4h = pd.read_csv(
-            f"data/formatted/{devise}_4h.csv", chunksize=1)
+            f"data/month_debug/{devise}_4h.csv", chunksize=1)
 
         f = open("data/diff_to_high.txt", "w")
         f.write("")
@@ -53,12 +54,12 @@ class BotDev(BotManager):
 
         candle_5min = create_from_csv_line(
             self.open_file_5min.get_chunk().values[0])
-        self.candles_30min_list.append(create_from_csv_line(
-            self.open_file_30min.get_chunk().values[0]))
-        self.candles_1h_list.append(create_from_csv_line(
-            self.open_file_1h.get_chunk().values[0]))
-        self.candles_4h_list.append(create_from_csv_line(
-            self.open_file_4h.get_chunk().values[0]))
+        # self.candles_30min_list.append(create_from_csv_line(
+        #     self.open_file_30min.get_chunk().values[0]))
+        # self.candles_1h_list.append(create_from_csv_line(
+        #     self.open_file_1h.get_chunk().values[0]))
+        # self.candles_4h_list.append(create_from_csv_line(
+        #     self.open_file_4h.get_chunk().values[0]))
 
         try:
             while (candle_5min != None):
@@ -97,15 +98,21 @@ class BotDev(BotManager):
                 self.stdscr.addstr(
                     6, 0, f'Trade sell is open: {not self.trade_sell.is_closed}')
                 self.stdscr.addstr(
-                    7, 0, f'Opened buy/sell trades at the same time: {self.opened_both_side_count}')
-                self.stdscr.addstr(8, 0, f'Max balance: {self.max_balance}')
-                self.stdscr.addstr(9, 0,
-                                   f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
-                self.stdscr.addstr(10, 0,
-                                   f'Max drawdown: {self.max_drawdown}%')
+                    7, 0, f'Trade buy triggered: {self.buy_triggered}')
+                self.stdscr.addstr(
+                    8, 0, f'Trade sell triggered: {self.sell_triggered}')
+                self.stdscr.addstr(
+                    9, 0, f'Opened buy/sell trades at the same time: {self.opened_both_side_count}')
+                self.stdscr.addstr(10, 0, f'Max balance: {self.max_balance}')
                 self.stdscr.addstr(11, 0,
+                                   f'Current drawdown: {self.current_drawdown}% -> {round(self.max_balance * (self.current_drawdown / 100), 4)}€')
+                self.stdscr.addstr(12, 0,
+                                   f'Max drawdown: {self.max_drawdown}%')
+                self.stdscr.addstr(13, 0,
                                    f'Devise: {"EURUSD" if len(sys.argv) < 2 else sys.argv[1]}')
                 try:
+                    # if (self.candle_5min_start_date.strftime('%Y-%m-%d %H:%M:%S') == '2024-03-04 08:50:00'):
+                    #     raise Exception('Stop here')
                     candle_5min = self.set_candles_list(candle_5min)
                 except Exception as e:
                     candle_5min = None
@@ -115,7 +122,7 @@ class BotDev(BotManager):
                         self.set_all_rsi()
                     if (self.rsi_5min.value != 0 and self.rsi_30min.value != 0 and self.rsi_1h.value != 0 and self.rsi_4h.value != 0):
                         self.test_strategy()
-                    self.stdscr.addstr(12, 0, '----------')
+                    self.stdscr.addstr(14, 0, '----------')
                     self.stdscr.refresh()
             curses.endwin()
             self.print_final_backtest_message()
@@ -129,6 +136,8 @@ class BotDev(BotManager):
         total_trades = TradeModel.findAll()
 
         self.loggerService.log('\n----- Backtest done -----', False, '\n', '')
+        self.loggerService.log(
+            f'rsi: {self.rsi_5min.value}, {self.rsi_30min.value}, {self.rsi_1h.value}, {self.rsi_4h.value}', False, '\n', '')
         self.loggerService.log(
             f'Candle 5m start date: {self.candle_5min_start_date}', False, '\n', '')
         self.loggerService.log(
@@ -144,6 +153,10 @@ class BotDev(BotManager):
             f'Trade buy is open: {not self.trade_buy.is_closed}', False, '\n', '')
         self.loggerService.log(
             f'Trade sell is open: {not self.trade_sell.is_closed}', False, '\n', '')
+        self.loggerService.log(
+            f'Trade buy triggered: {self.buy_triggered}', False, '\n', '')
+        self.loggerService.log(
+            f'Trade sell triggered: {self.sell_triggered}', False, '\n', '')
         self.loggerService.log(
             f'Opened buy/sell trades at the same time: {self.opened_both_side_count}', False, '\n', '')
         self.loggerService.log(
@@ -196,36 +209,36 @@ class BotDev(BotManager):
         current_candle_5min_day = current_candle_5min_start_date.day
 
         if (len(self.candles_5min_list) != 0):
-            last_candle_5min_start_date = datetime.fromtimestamp(
-                self.candles_5min_list[-1].start_timestamp / 1000, tz=timezone.utc)
-            diff_minutes = (current_candle_5min_start_date -
-                            last_candle_5min_start_date).total_seconds() / 60
+            # last_candle_5min_start_date = datetime.fromtimestamp(
+            #     self.candles_5min_list[-1].start_timestamp / 1000, tz=timezone.utc)
+            # diff_minutes = (current_candle_5min_start_date -
+            #                 last_candle_5min_start_date).total_seconds() / 60
 
-            if (diff_minutes > 10 and current_candle_5min_start_date.hour != 23 and current_candle_5min_start_date.hour != 0):
-                # print('## Difference minutes too high, drop all candles list ##')
-                if (self.trade_sell.is_closed == False):
-                    self.check_to_close_trade(
-                        self.trade_sell, self.indicators_sell, 'force_loss')
+            # if (diff_minutes > 10 and current_candle_5min_start_date.hour != 23 and current_candle_5min_start_date.hour != 0):
+            #     # print('## Difference minutes too high, drop all candles list ##')
+            #     if (self.trade_sell.is_closed == False):
+            #         self.check_to_close_trade(
+            #             self.trade_sell, self.indicators_sell, 'force_loss')
 
-                if (self.trade_buy.is_closed == False):
-                    self.check_to_close_trade(
-                        self.trade_buy, self.indicators_buy, 'force_loss')
+            #     if (self.trade_buy.is_closed == False):
+            #         self.check_to_close_trade(
+            #             self.trade_buy, self.indicators_buy, 'force_loss')
 
-                f = open("data/diff_to_high.txt", "a")
-                f.write(
-                    f"Difference minutes too high, drop all candles list\n{last_candle_5min_start_date.isoformat()}\n{current_candle_5min_start_date.isoformat()}\ndiff minutes:{diff_minutes}\n\n")
-                f.close()
-                self.buy_triggered = False
-                self.sell_triggered = False
-                self.candles_5min_list = []
-                self.candles_30min_list = []
-                self.rsi_5min.value = 0
-                self.rsi_30min.value = 0
-                if (diff_minutes >= 20):
-                    self.candles_1h_list = []
-                    self.candles_4h_list = []
-                    self.rsi_1h.value = 0
-                    self.rsi_4h.value = 0
+            #     f = open("data/diff_to_high.txt", "a")
+            #     f.write(
+            #         f"Difference minutes too high, drop all candles list\n{last_candle_5min_start_date.isoformat()}\n{current_candle_5min_start_date.isoformat()}\ndiff minutes:{diff_minutes}\n\n")
+            #     f.close()
+            #     self.buy_triggered = False
+            #     self.sell_triggered = False
+            #     self.candles_5min_list = []
+            #     self.candles_30min_list = []
+            #     self.rsi_5min.value = 0
+            #     self.rsi_30min.value = 0
+            #     if (diff_minutes >= 20):
+            #         self.candles_1h_list = []
+            #         self.candles_4h_list = []
+            #         self.rsi_1h.value = 0
+            #         self.rsi_4h.value = 0
 
             if ((self.last_candle_5min_minute < 30 and current_candle_5min_minute >= 30)
                 or (self.last_candle_5min_minute >= 30 and current_candle_5min_minute < 30)
@@ -305,24 +318,26 @@ class BotDev(BotManager):
             self.trade_buy.is_closed = False
             self.trade_buy.price = current_candle.close
             self.trade_buy.opened_at = datetime.fromtimestamp(
-                current_candle.start_timestamp / 1000, tz=timezone.utc).isoformat()
+                (current_candle.start_timestamp + (5 * 60 * 1000)) / 1000, tz=timezone.utc).isoformat()
             self.trade_buy.type = TradeType(side)
             self.trade_buy.position_value = str(self.get_position_value())
             self.indicators_buy._id = ObjectId()
             self.indicators_buy.type = self.trade_buy.type
             self.indicators_buy.trade_id = self.trade_buy._id
             self.indicators_buy.save()
+            self.trade_buy.save()
         elif (side == TradeType.SELL):
             self.trade_sell.is_closed = False
             self.trade_sell.price = current_candle.close
             self.trade_sell.opened_at = datetime.fromtimestamp(
-                current_candle.start_timestamp / 1000, tz=timezone.utc).isoformat()
+                (current_candle.start_timestamp + (5 * 60 * 1000)) / 1000, tz=timezone.utc).isoformat()
             self.trade_sell.type = TradeType(side)
             self.trade_sell.position_value = str(self.get_position_value())
             self.indicators_sell._id = ObjectId()
             self.indicators_sell.type = self.trade_sell.type
             self.indicators_sell.trade_id = self.trade_sell._id
             self.indicators_sell.save()
+            self.trade_sell.save()
 
         if (self.trade_buy.is_closed == False and self.trade_sell.is_closed == False):
             self.opened_both_side_count += 1

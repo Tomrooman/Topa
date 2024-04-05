@@ -23,6 +23,7 @@
     "convert:crypto:1h": "python3 src/utils/crypto/convert_historical_csv_to_1h_candles.py",
     "convert:crypto:4h": "python3 src/utils/crypto/convert_historical_csv_to_4h_candles.py",
     "daily_candles": "python3 src/utils/create_daily_candles_files.py",
+    "historical_candles": "python3 src/utils/get_historical_candles.py",
     "test": "echo \"Error: no test specified\" && exit 1",
     "create:requirements:file": "pip3 freeze > requirements.txt",
     "docker:deploy:bot:demo": "npm run docker:build:bot:demo && npm run docker:push:bot:demo",

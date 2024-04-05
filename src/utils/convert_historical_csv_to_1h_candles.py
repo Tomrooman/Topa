@@ -2,7 +2,7 @@ import datetime
 
 
 def main():
-    converted_file_path = 'data/EURUSD_1h.csv'
+    converted_file_path = 'data/month_debug/EURUSD_1h.csv'
     candle = {}
     candles_tick_list = []
     minutes = 0
@@ -10,7 +10,7 @@ def main():
     file1.write(
         'Symbol, Timeframe, Start timestamp, Start date, Open, High, Low, Close\n')
     file1.close()
-    with open('data/EURUSD.txt', mode='rb') as csv_file:
+    with open('data/month_debug/fx_open_candles_EURUSD.csv', mode='rb') as csv_file:
         lines_count = 0
         for row in csv_file:
             line = row.decode('utf-8').split(',')
@@ -20,8 +20,8 @@ def main():
                 year = line[1][0:4]
                 month = line[1][4:6]
                 day = line[1][6:8]
-                hours = line[2][0:2]
-                minutes = int(line[2][2:4])
+                hours = int(line[2][0:2])
+                minutes = int(line[2][3:5])
                 date = datetime.datetime(
                     year=int(year), month=int(month), day=int(day), hour=int(hours), minute=int(minutes), second=0, tzinfo=datetime.timezone.utc)
                 if (len(candles_tick_list) != 0):

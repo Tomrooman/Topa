@@ -24,22 +24,22 @@ class Parameters_EURUSD():
         "rsi_5min": 11,
         "rsi_5min_fast": 7,
         "rsi_30min": 7,
-        "rsi_1h": 3,
-        "rsi_4h": 3
+        "rsi_1h": 4,
+        "rsi_4h": 2
     }
 
     def buy_trigger(self, min_rsi: float, botManager: Any):
         return min_rsi == botManager.rsi_5min_fast.value \
-            and botManager.rsi_5min_fast.value <= 40 \
+            and botManager.rsi_5min.value <= 30 \
             and botManager.rsi_30min.value < botManager.rsi_1h.value
 
     def sell_trigger(self, max_rsi: float, botManager: Any):
         return max_rsi == botManager.rsi_5min_fast.value \
-            and botManager.rsi_5min_fast.value >= 60 \
+            and botManager.rsi_5min.value >= 70 \
             and botManager.rsi_30min.value > botManager.rsi_1h.value
 
     def buy_take_position(self, botManager: Any):
-        return botManager.rsi_5min_fast.value >= 30
+        return botManager.rsi_5min_fast.value >= 20
 
     def sell_take_position(self, botManager: Any):
-        return botManager.rsi_5min_fast.value <= 70
+        return botManager.rsi_5min_fast.value <= 80

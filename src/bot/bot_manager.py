@@ -9,6 +9,7 @@ from indicators import get_rsi
 from datetime import datetime, timezone
 from parameters.EURUSD import Parameters_EURUSD
 from parameters.BTCUSD import Parameters_BTCUSD
+from logger.logger_service import LoggerService
 
 # Sydney is open from 9:00 to 18:00 am UTC
 # Tokyo is open from 0:00 to 9:00 UTC
@@ -23,6 +24,7 @@ class RsiData:
 
 
 class BotManager:
+    loggerService = LoggerService()
     FEES: float
     LEVERAGE: int
     CANDLES_HISTORY_LENGTH: int
@@ -145,6 +147,8 @@ class BotManager:
         min_rsi = min(self.rsi_5min_fast.value, self.rsi_5min.value, self.rsi_30min.value,
                       self.rsi_1h.value, self.rsi_4h.value)
         previous_candles = self.candles_5min_list[-self.CANDLES_HISTORY_LENGTH:]
+        # self.loggerService.log(
+        #     f'rsi: max:{max_rsi}, fast:{self.rsi_5min_fast.value}, 5m:{self.rsi_5min.value}, 30m:{self.rsi_30min.value}, 1h:{self.rsi_1h.value}, 4h:{self.rsi_4h.value}', False, '\n', '')
         if (self.buy_triggered == True):
             if (self.parameters.buy_take_position(self)):
                 self.buy_triggered = False
@@ -154,6 +158,8 @@ class BotManager:
                 self.sell_triggered = False
                 return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
 
+        # self.loggerService.log(
+        #     f'buy_triggered: {self.buy_triggered}, sell_triggered: {self.sell_triggered}', False, '\n', '')
         if (self.trade_buy.is_closed == True and self.parameters.buy_trigger(min_rsi, self)):  # BUY
             # return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
             self.buy_triggered = True
@@ -162,6 +168,8 @@ class BotManager:
             # return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
             self.sell_triggered = True
             self.buy_triggered = False
+        # self.loggerService.log(
+        #     f'buy_triggered: {self.buy_triggered}, sell_triggered: {self.sell_triggered}', False, '\n', '')
 
     def get_buy_take_profit_and_stop_loss(self, current_candle: Candle, previous_candles: list[Candle]) -> dict | None:
         sorted_highs = sorted(

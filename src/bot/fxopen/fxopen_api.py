@@ -1,5 +1,6 @@
 import base64
 from datetime import datetime, timezone
+from enum import unique
 import hmac
 import hashlib
 from bson import ObjectId
@@ -8,11 +9,13 @@ import json
 from typing import Any, Literal
 from config.config_service import ConfigService
 from database.models.trade_model import DeviseValues
+from bot.candle import Candle
 from .mappers.map_to_candles_list import map_to_candles_list
 from .mappers.map_to_trade import map_to_trade
 from .mappers.map_to_account_info import map_to_account_info
 from logger.logger_service import LoggerService
 import math
+import time
 
 Periodicity = Literal[
     "D1",
@@ -42,19 +45,73 @@ class FxOpenApi():
         else:
             raise Exception('Invalid environment')
 
-    def get_candles(self, devise: DeviseValues, timeframe: Periodicity, count: int):
+    def get_candles(self, devise: DeviseValues, timeframe: Periodicity, count: int, loop=False, iteration=1, limit_date: datetime = datetime.now(timezone.utc), file_path: str = '', candles_list: list[Candle] = []):
         if (count > 999):
             raise Exception('Count must be less than 1000')
 
+        final_count = count + 1
         timestamp = round(datetime.now(tz=timezone.utc).timestamp() * 1000)
-        url = f'/quotehistory/{devise}/{timeframe}/bars/ask?count={-(count + 1)}&timestamp={timestamp}'
+
+        if (loop == True and iteration > 1):
+            timestamp = round(
+                (datetime.now(tz=timezone.utc).timestamp() - (5 * 60 * final_count * (iteration - 1))) * 1000)
+
+        url = f'/quotehistory/{devise}/{timeframe}/bars/ask?count={-(final_count)}&timestamp={timestamp}'
         data = ''
         # Last candle in the response is open
         response = self.api_request(
             method='GET', url=url, data=data, is_auth_required=True)
         # So remove it because we need closed candles
-        del response['Bars'][-1]
-        return map_to_candles_list(response)
+        if (iteration == 1):
+            del response['Bars'][-1]
+
+        candles = map_to_candles_list(response)
+        response_closed_date = datetime.fromtimestamp(
+            (candles[-1].start_timestamp + (1000 * 60 * 5)) / 1000, tz=timezone.utc)
+        print(f'candles length: {len(candles)}')
+        uniqueCandles = []
+        for candle in candles:
+            found = False
+            for x in candles_list:
+                if (x.start_timestamp == candle.start_timestamp):
+                    found = True
+                    break
+            if (found == False):
+                uniqueCandles.append(candle)
+                candles_list.append(candle)
+
+        file1 = open(file_path, "a")
+        for candle in uniqueCandles:
+            start_date = datetime.fromtimestamp(
+                candle.start_timestamp / 1000, tz=timezone.utc)
+            file1.write(
+                f'EURUSD,{start_date.strftime("%Y%m%d")},{start_date.strftime("%H:%M")},{candle.open},{candle.high},{candle.low},{candle.close},0' + '\n')
+
+        file1.close()
+
+        closed_date = datetime.fromtimestamp(
+            (candles_list[-1].start_timestamp + (1000 * 60 * 5)) / 1000, tz=timezone.utc)
+        formatted_close_date = closed_date.strftime('%Y-%m-%d %H:%M:%S')
+        formatted_response_closed_date = response_closed_date.strftime(
+            '%Y-%m-%d %H:%M:%S')
+        formatted_limit_date = limit_date.strftime('%Y-%m-%d %H:%M:%S')
+
+        if (loop == False):
+            return uniqueCandles
+
+        print(f'candles_list length: {len(candles_list)}')
+        print(f'iteration: {iteration}')
+        print(f'closed_date: {formatted_close_date}')
+        print(f'response_closed_date: {formatted_response_closed_date}')
+        print(f'limit_date: {formatted_limit_date}')
+        print(
+            f'diff second: {response_closed_date.timestamp() - limit_date.timestamp()}')
+        print()
+        if (response_closed_date.timestamp() - limit_date.timestamp() < 0):
+            return candles_list
+
+        time.sleep(1)
+        return self.get_candles(devise, timeframe, count, loop, iteration + 1, limit_date, file_path, candles_list)
 
     def get_trade_by_id(self, trade_id: str):
         url = f'/trade/{trade_id}'
