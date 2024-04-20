@@ -79,6 +79,8 @@ class FxOpenApi():
             if (found == False):
                 uniqueCandles.append(candle)
                 candles_list.append(candle)
+                if (len(candles_list) >= 5000):
+                    del candles_list[0]
 
         file1 = open(file_path, "a")
         for candle in uniqueCandles:

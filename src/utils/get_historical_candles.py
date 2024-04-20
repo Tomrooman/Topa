@@ -17,7 +17,7 @@ class HistoricalCandles():
 
     def get_candles(self):
         limit_date = datetime(
-            year=2024, month=3, day=1, hour=0, minute=0, second=0, tzinfo=timezone.utc)
+            year=2020, month=1, day=1, hour=0, minute=0, second=0, tzinfo=timezone.utc)
         converted_file_path = 'data/month_debug/fx_open_candles_EURUSD.csv'
         file1 = open(converted_file_path, "w")
         file1.write(

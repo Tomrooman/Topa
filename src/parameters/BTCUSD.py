@@ -28,22 +28,22 @@ class Parameters_BTCUSD():
         "rsi_4h": 3
     }
 
-    def buy_trigger(self, min_rsi: float, botManager: Any):
+    def buy_trigger(self, min_rsi: float, botManager: Any, current_price: float):
         return min_rsi == botManager.rsi_5min_fast.value \
             and botManager.rsi_5min_fast.value <= 40 \
             and botManager.rsi_30min.value < botManager.rsi_1h.value
         # and botManager.rsi_5min.value < botManager.rsi_30min.value \
         # and botManager.rsi_30min.value >= 40 \
 
-    def sell_trigger(self, max_rsi: float, botManager: Any):
+    def sell_trigger(self, max_rsi: float, botManager: Any, current_price: float):
         return max_rsi == botManager.rsi_5min_fast.value \
             and botManager.rsi_5min_fast.value >= 60 \
             and botManager.rsi_30min.value > botManager.rsi_1h.value
         # and botManager.rsi_5min.value > botManager.rsi_30min.value \
         # and botManager.rsi_30min.value <= 60 \
 
-    def buy_take_position(self, botManager: Any):
+    def buy_take_position(self, botManager: Any, current_price: float):
         return botManager.rsi_5min_fast.value >= 20
 
-    def sell_take_position(self, botManager: Any):
+    def sell_take_position(self, botManager: Any, current_price: float):
         return botManager.rsi_5min_fast.value <= 80

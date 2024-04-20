@@ -5,7 +5,7 @@ from bson import ObjectId
 from database.models.trade_model import DeviseValues, TradeModel, TradeType, TradeTypeValues
 from database.models.indicators_model import IndicatorsModel
 from candle import Candle
-from indicators import get_rsi
+from indicators import get_rsi, get_sma
 from datetime import datetime, timezone
 from parameters.EURUSD import Parameters_EURUSD
 from parameters.BTCUSD import Parameters_BTCUSD
@@ -55,6 +55,8 @@ class BotManager:
     rsi_30min: RsiData
     rsi_1h: RsiData
     rsi_4h: RsiData
+    sma_5min_20: float = 0
+    sma_5min_50: float = 0
 
     buy_triggered = False
     sell_triggered = False
@@ -150,21 +152,21 @@ class BotManager:
         # self.loggerService.log(
         #     f'rsi: max:{max_rsi}, fast:{self.rsi_5min_fast.value}, 5m:{self.rsi_5min.value}, 30m:{self.rsi_30min.value}, 1h:{self.rsi_1h.value}, 4h:{self.rsi_4h.value}', False, '\n', '')
         if (self.buy_triggered == True):
-            if (self.parameters.buy_take_position(self)):
+            if (self.parameters.buy_take_position(self, current_candle.close)):
                 self.buy_triggered = False
                 return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
         elif (self.sell_triggered == True):
-            if (self.parameters.sell_take_position(self)):
+            if (self.parameters.sell_take_position(self, current_candle.close)):
                 self.sell_triggered = False
                 return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
 
         # self.loggerService.log(
         #     f'buy_triggered: {self.buy_triggered}, sell_triggered: {self.sell_triggered}', False, '\n', '')
-        if (self.trade_buy.is_closed == True and self.parameters.buy_trigger(min_rsi, self)):  # BUY
+        if (self.trade_buy.is_closed == True and self.parameters.buy_trigger(max_rsi, self, current_candle.close)):  # BUY
             # return self.get_buy_take_profit_and_stop_loss(current_candle, previous_candles)
             self.buy_triggered = True
             self.sell_triggered = False
-        elif (self.trade_sell.is_closed == True and self.parameters.sell_trigger(max_rsi, self)):  # SELL
+        elif (self.trade_sell.is_closed == True and self.parameters.sell_trigger(min_rsi, self, current_candle.close)):  # SELL
             # return self.get_sell_take_profit_and_stop_loss(current_candle, previous_candles)
             self.sell_triggered = True
             self.buy_triggered = False
@@ -269,6 +271,12 @@ class BotManager:
             self.candles_30min_list, self.rsi_30min.period)
         rsi_1h_local = get_rsi(self.candles_1h_list, self.rsi_1h.period)
         rsi_4h_local = get_rsi(self.candles_4h_list, self.rsi_4h.period)
+        sma_5min_20_local = get_sma(self.candles_5min_list, 20)
+        sma_5min_50_local = get_sma(self.candles_5min_list, 50)
+        if (len(sma_5min_20_local) > 0):
+            self.sma_5min_20 = sma_5min_20_local[-1]
+        if (len(sma_5min_50_local) > 0):
+            self.sma_5min_50 = sma_5min_50_local[-1]
         if (len(rsi_5min_local) > 0):
             self.rsi_5min.value = rsi_5min_local[-1]
             self.rsi_5min_fast.value = rsi_5min_fast_local[-1]
